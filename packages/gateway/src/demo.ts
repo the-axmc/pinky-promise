@@ -2,6 +2,8 @@
  * The whole system on this machine, with a device walking a lot through its journey.
  *
  *   pnpm demo                         scripted journey, fully simulated device
+ *   pnpm demo --pause                 hold at the two moments worth showing on the buyer page:
+ *                                     in custody (buy now) and frozen (see the freeze)
  *   pnpm demo --interactive           you drive the device from the keyboard
  *   pnpm demo --port /dev/cu.usb…     same, with the real parts of a board (rest simulated)
  *   pnpm demo --port mock             same, through the in-memory board (exercises the bridge)
@@ -75,7 +77,7 @@ const stateName = (value: number) => Object.entries(LotState).find(([, v]) => v 
 
 async function main(): Promise<void> {
   const flags = parseFlags(process.argv.slice(2));
-  if (flags.help) return console.log('pnpm demo [--interactive] [--port <port|mock>] [--anchor-port <port|mock>] [--sim parts] [--photos dir] [--once] [--verbose]');
+  if (flags.help) return console.log('pnpm demo [--pause [seconds]] [--interactive] [--port <port|mock>] [--anchor-port <port|mock>] [--sim parts] [--photos dir] [--once] [--verbose]');
 
   const zgEnv =
     process.env.ZG_ROUTER_URL && process.env.ZG_API_KEY && process.env.ZG_MODEL
@@ -271,6 +273,23 @@ async function main(): Promise<void> {
       say(`   the depositor listed ${units} units on the market`);
     };
 
+    /** With --pause: holds the journey so the buyer page can be looked at (Enter, or a timer). */
+    const pause = async (message: string, defaultSeconds: number) => {
+      if (!flags.pause) return;
+      const seconds = Number(text(flags, 'pause') ?? 0);
+      say(message);
+      if (process.stdin.isTTY && !seconds) {
+        say('press Enter to continue the journey');
+        process.stdin.resume();
+        await new Promise<void>((resolve) => process.stdin.once('data', () => resolve()));
+        process.stdin.pause();
+      } else {
+        const wait = seconds ? Math.min(seconds, defaultSeconds * 2) : defaultSeconds;
+        say(`continuing in ${wait} s`);
+        await new Promise((resolve) => setTimeout(resolve, wait * 1000));
+      }
+    };
+
     const stopSigning = runner.startSigning(150);
 
     if (flags.interactive) {
@@ -330,6 +349,9 @@ async function main(): Promise<void> {
     } else {
       await listOnMarket(40n, parseEther('0.02'));
 
+      // The receipt trades only while a venue holds the goods: this is the moment to buy.
+      await pause('the lot is in custody and 40 units are on offer: buy some on the buyer page now (pnpm web)', 45);
+
       act('2. Leaving the warehouse: transfers are restricted in transit');
       await reading();
       await handoff(CheckpointKind.WAREHOUSE_OUT);
@@ -375,6 +397,7 @@ async function main(): Promise<void> {
 
       const frozen = (await stack.gateway.hedera.lot(ASSET))?.state === LotState.FROZEN;
       if (frozen) {
+        await pause('the lot is frozen: on the buyer page every holder\'s units now show as frozen and buying is refused', 15);
         act('6. Inspection: the inspector releases the lot');
         await admin(`/lots/${ASSET}/release`, { inspectionRef: `0x${'ee'.repeat(32)}` });
         await report();
