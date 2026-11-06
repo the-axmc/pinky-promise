@@ -1,0 +1,20 @@
+{
+  "name": "@pinky/protocol",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The signed wire formats of the sensor oracle: reading, checkpoint, device certificate, venue anchor, decision attestation. Everything else in the repo verifies these same bytes.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run",
+    "vectors": "tsx scripts/generate-vectors.ts"
+  },
+  "dependencies": {
+    "@noble/ciphers": "^2.4.0",
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0"
+  }
+}
