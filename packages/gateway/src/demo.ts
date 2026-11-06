@@ -382,12 +382,33 @@ async function main(): Promise<void> {
         'the device is at the origin warehouse. Suggested: 1 (warehouse in), 2 (out), v, +, +, …, v, 3 (dock), i, 4.',
       );
       let outage = false;
+      const whatNext = async () => {
+        await stack.gateway.idle();
+        await report();
+        const state = (await stack.gateway.hedera.lot(ASSET))?.state;
+        const next =
+          state === LotState.REGISTERED
+            ? '1 (warehouse in)'
+            : state === LotState.IN_CUSTODY && where !== 'dock'
+              ? 'm (offer units; buy on the buyer page), then 2 (warehouse out)'
+              : state === LotState.IN_CUSTODY
+                ? '- until the temperature is back in range, then 4 (final delivery)'
+                : state === LotState.IN_TRANSIT
+                  ? 'v (move on), + to warm it past the limit, o to cut 0G off, then 3 (dock handoff)'
+                  : state === LotState.FROZEN
+                    ? 'look at the buyer page (units frozen), then i (the inspector releases)'
+                    : state === LotState.DELIVERED
+                      ? 'done — redeem on the buyer page; q quits'
+                      : undefined;
+        if (next) say(`   next: ${next}`);
+      };
       await runInteractive({
         session,
         runner,
         intervalMs: Math.max(2, Number(text(flags, 'interval') ?? 8)) * 1000,
         home: spots.origin,
         say,
+        afterHandoff: whatNext,
         extraKeys: {
           v: {
             help: 'move on: origin → road → dock (position and which anchor is in range)',
@@ -413,7 +434,7 @@ async function main(): Promise<void> {
             run: async () => {
               await admin(`/lots/${ASSET}/release`, { inspectionRef: `0x${'ee'.repeat(32)}` });
               say('the inspector released the lot');
-              await report();
+              await whatNext();
             },
           },
           m: {

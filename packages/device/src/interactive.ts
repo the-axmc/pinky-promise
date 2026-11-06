@@ -20,6 +20,8 @@ export type InteractiveOptions = {
   home?: { latDeg: number; lonDeg: number };
   /** More single-key commands, shown in the help line. */
   extraKeys?: Record<string, ExtraKey>;
+  /** Called once a handoff has a decision (or was refused outright), e.g. to show what to do next. */
+  afterHandoff?: () => Promise<void> | void;
   say?: (line: string) => void;
 };
 
@@ -76,21 +78,41 @@ export async function runInteractive(options: InteractiveOptions): Promise<void>
 
   const checkpoint = (kind: CheckpointKindValue) =>
     enqueue('checkpoint', async () => {
+      if (device.pendingReadings === 0) {
+        // A handoff is judged on readings, so there has to be at least one since the last handoff.
+        await runner.reading();
+        say(`reading #${device.seq} sent (a handoff needs at least one)`);
+      }
       say(`${checkpointKindName(kind)}: recording the seal, asking the venue anchor…`);
-      const sent = await runner.checkpoint(kind);
+      let sent: Awaited<ReturnType<typeof runner.checkpoint>>;
+      try {
+        sent = await runner.checkpoint(kind);
+      } catch (error) {
+        const refused = error instanceof LinkError && error.status >= 400 && error.status < 500;
+        if (!refused) throw error;
+        say(`the gateway refused this handoff: ${String(error.detail.error ?? error.message)}`);
+        say('nothing was decided; the readings stay with the device for the next handoff');
+        await options.afterHandoff?.();
+        return;
+      }
       const short = `${sent.checkpointId.slice(0, 12)}…`;
       say(`checkpoint ${short} sent — ${sent.status}: the handoff is NOT accepted until a decision arrives`);
       // Keep watching without holding up further readings.
       void (async () => {
+        // Say "still pending" soon the first time (it is the point of a safe stop), then less often.
+        let patience = 5_000;
         while (!stopping) {
           const now = await runner
-            .awaitDecision(sent.checkpointId, { timeoutMs: 20_000 })
+            .awaitDecision(sent.checkpointId, { timeoutMs: patience })
             .catch(() => undefined);
+          patience = 15_000;
           if (!now) continue;
           if (now.status !== 'PENDING') {
-            return say(
+            say(
               `checkpoint ${short} → ${now.status}${now.decision ? ` (${now.decision})` : ''}${now.reason ? `: ${now.reason}` : ''}`,
             );
+            await options.afterHandoff?.();
+            return;
           }
           say(
             `checkpoint ${short} still PENDING — no decision yet, nothing is accepted${now.reason ? ` (${now.reason})` : ''}`,
