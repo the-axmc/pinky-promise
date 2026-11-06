@@ -196,7 +196,7 @@ describe('checkpoint (PPC1)', () => {
       lastSeq: 7,
       readingCount: 3,
       readingsRoot: toHex(readingsRoot(digests)),
-      photoHash: toHex(sha256(new Uint8Array([1, 2, 3]))),
+      sealHash: toHex(sha256(new Uint8Array([1, 2, 3]))),
       anchorDigest: ZERO_32,
       blockhash,
       ...overrides,
@@ -320,5 +320,57 @@ describe('lot profile (PPL1)', () => {
   it('refuses an inverted band', () => {
     expect(() => signLotProfile({ ...profile, tempMinCenti: 900 }, registrySecret)).toThrow(ProtocolError);
     expect(() => signLotProfile({ ...profile, rhMaxCenti: 10_001 }, registrySecret)).toThrow(ProtocolError);
+  });
+});
+
+describe('seal evidence', () => {
+  const photo = { sha256: toHex(sha256(new Uint8Array([9, 9, 9]))), mime: 'image/jpeg', source: 'device-camera' as const };
+
+  it('round-trips a record and commits to the exact bytes', async () => {
+    const { decodeSealEvidence, encodeSealEvidence, sealHash } = await import('../src');
+    const record = encodeSealEvidence({ v: 1, photo, nfc: { uid: '0x04a1b2c3d4e5f6', tamper: 'closed', counter: 12 } });
+    expect(decodeSealEvidence(record)).toEqual({ v: 1, photo, nfc: { uid: '0x04a1b2c3d4e5f6', tamper: 'closed', counter: 12 } });
+    expect(sealHash(record)).toBe(toHex(sha256(record)));
+  });
+
+  it('accepts any one kind of evidence on its own, and refuses none', async () => {
+    const { encodeSealEvidence } = await import('../src');
+    expect(() => encodeSealEvidence({ v: 1, photo })).not.toThrow();
+    expect(() => encodeSealEvidence({ v: 1, nfc: { uid: '0x04a1b2c3' } })).not.toThrow();
+    expect(() => encodeSealEvidence({ v: 1, enclosure: { closed: true } })).not.toThrow();
+    expect(() => encodeSealEvidence({ v: 1 })).toThrow(ProtocolError);
+  });
+
+  it('reports tampering the hardware itself detected', async () => {
+    const { sealReportsTamper } = await import('../src');
+    expect(sealReportsTamper({ v: 1, nfc: { uid: '0x04', tamper: 'open' } })).toBe(true);
+    expect(sealReportsTamper({ v: 1, enclosure: { closed: false } })).toBe(true);
+    expect(sealReportsTamper({ v: 1, photo, nfc: { uid: '0x04', tamper: 'closed' }, enclosure: { closed: true } })).toBe(false);
+    expect(sealReportsTamper({ v: 1, photo })).toBe(false);
+  });
+
+  it('rejects malformed records', async () => {
+    const { decodeSealEvidence } = await import('../src');
+    const bad = (value: unknown) => () => decodeSealEvidence(new TextEncoder().encode(JSON.stringify(value)));
+    expect(bad({ v: 2, photo })).toThrow(ProtocolError);
+    expect(bad({ v: 1, photo: { ...photo, sha256: '0x12' } })).toThrow(ProtocolError);
+    expect(bad({ v: 1, photo: { ...photo, mime: 'text/html' } })).toThrow(ProtocolError);
+    expect(bad({ v: 1, nfc: { uid: 'not hex' } })).toThrow(ProtocolError);
+    expect(() => decodeSealEvidence(new Uint8Array([0xff, 0xfe]))).toThrow(ProtocolError);
+  });
+});
+
+describe('GPS without a fix', () => {
+  it('commits to a sentinel that no valid geofence can contain', async () => {
+    const { GPS_NO_FIX, LAT_MAX_UNITS, LON_MAX_UNITS, isNoFix, noFixOpening } = await import('../src');
+    const opening = noFixOpening(salt);
+    expect(isNoFix(opening)).toBe(true);
+    expect(gpsCommitment(opening).length).toBe(32);
+    expect(GPS_NO_FIX).toBeGreaterThan(LAT_MAX_UNITS);
+    expect(GPS_NO_FIX).toBeGreaterThan(LON_MAX_UNITS);
+    const world = { latMin: 0, latMax: LAT_MAX_UNITS, lonMin: 0, lonMax: LON_MAX_UNITS };
+    expect(boxContains(world, opening.latUnits, opening.lonUnits)).toBe(false);
+    // Only the exact sentinel pair is accepted; a single out-of-range coordinate is still an error.
+    expect(() => gpsCommitment({ ...opening, lonUnits: 5 })).toThrow(ProtocolError);
   });
 });

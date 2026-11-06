@@ -1,8 +1,9 @@
 /**
  * PPC1 — a custody checkpoint, 221 bytes, signed by the device wallet.
  *
- * At a handoff the device photographs the tamper seal and bundles the photo with the readings
- * taken since the previous checkpoint. This payload commits to all of it.
+ * At a handoff the device records the state of the tamper seal (a photo, an NFC seal tag, the
+ * enclosure switch — see seal.ts) and bundles that with the readings taken since the previous
+ * checkpoint. This payload commits to all of it.
  *
  *   off  len  field
  *     0    4  magic           "PPC1"
@@ -15,7 +16,7 @@
  *    81    8  last_seq        seq of the last bundled reading
  *    89    4  reading_count   uint32, number of bundled readings (at least 1)
  *    93   32  readings_root   SHA-256(digest_1 ‖ digest_2 ‖ … ‖ digest_n), in seq order
- *   125   32  photo_hash      SHA-256 of the seal photo file
+ *   125   32  seal_hash       SHA-256 of the seal evidence record (seal.ts)
  *   157   32  anchor_digest   digest of the venue anchor attestation, or 32 zero bytes
  *   189   32  blockhash       a recent Arkiv block hash
  *
@@ -75,7 +76,8 @@ export type Checkpoint = {
   lastSeq: number;
   readingCount: number;
   readingsRoot: Hex;
-  photoHash: Hex;
+  /** SHA-256 of the seal evidence record sent with the checkpoint. */
+  sealHash: Hex;
   /** {@link ZERO_32} when the venue has no anchor or it was out of range. */
   anchorDigest: Hex;
   blockhash: Hex;
@@ -108,7 +110,7 @@ export function encodeCheckpoint(checkpoint: Checkpoint): Uint8Array {
     u64be(checkpoint.lastSeq),
     u32be(checkpoint.readingCount),
     fromHex(checkpoint.readingsRoot, 32),
-    fromHex(checkpoint.photoHash, 32),
+    fromHex(checkpoint.sealHash, 32),
     fromHex(checkpoint.anchorDigest, 32),
     fromHex(checkpoint.blockhash, 32),
   );
@@ -133,7 +135,7 @@ export function decodeCheckpoint(payload: Uint8Array): Checkpoint {
     lastSeq: readU64(payload, 81),
     readingCount: readU32(payload, 89),
     readingsRoot: toHex(payload.subarray(93, 125)),
-    photoHash: toHex(payload.subarray(125, 157)),
+    sealHash: toHex(payload.subarray(125, 157)),
     anchorDigest: toHex(payload.subarray(157, 189)),
     blockhash: toHex(payload.subarray(189, 221)),
   };

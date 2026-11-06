@@ -145,7 +145,7 @@ contract ProtocolVectorsTest is Test {
         assertEq(uint256(cp.lastSeq), vm.parseJsonUint(json, ".checkpoint.fields.lastSeq"));
         assertEq(uint256(cp.readingCount), 5);
         assertEq(cp.readingsRoot, vm.parseJsonBytes32(json, ".checkpoint.fields.readingsRoot"));
-        assertEq(cp.photoHash, vm.parseJsonBytes32(json, ".checkpoint.fields.photoHash"));
+        assertEq(cp.sealHash, vm.parseJsonBytes32(json, ".checkpoint.fields.sealHash"));
         assertEq(cp.anchorDigest, vm.parseJsonBytes32(json, ".anchor.digest"));
         assertEq(sha256(cpPayload), vm.parseJsonBytes32(json, ".checkpoint.digest"));
 

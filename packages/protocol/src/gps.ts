@@ -12,6 +12,10 @@
  * Both fit a u32, which keeps the circuit's range checks to plain unsigned comparisons.
  *
  *   commitment = SHA-256( lat_u (4) ‖ lon_u (4) ‖ salt (32) )      40-byte preimage
+ *
+ * A device without a GPS module, or without a fix (indoors is the normal case in a warehouse),
+ * commits to the pair (0xFFFFFFFF, 0xFFFFFFFF). That value lies outside every valid box, so "no
+ * position" can never be proven to be inside a venue; presence then rests on the venue anchor.
  */
 import { type Hex, ProtocolError, asciiFixed, concat, toHex, u32be, utf8 } from './bytes';
 import { sha256 } from './crypto';
@@ -20,6 +24,8 @@ export const LAT_OFFSET = 900_000_000;
 export const LON_OFFSET = 1_800_000_000;
 export const LAT_MAX_UNITS = 1_800_000_000;
 export const LON_MAX_UNITS = 3_600_000_000;
+/** Both coordinates set to this mean "no position": no GPS module, or no fix. */
+export const GPS_NO_FIX = 0xffff_ffff;
 
 export function latToUnits(degrees: number): number {
   if (!Number.isFinite(degrees) || degrees < -90 || degrees > 90) {
@@ -46,15 +52,26 @@ export function unitsToLon(units: number): number {
 /** The private opening of a GPS commitment. Shared with the gateway only, never published. */
 export type GpsOpening = { latUnits: number; lonUnits: number; salt: Uint8Array };
 
+/** The opening a device commits to when it has no position. */
+export function noFixOpening(salt: Uint8Array): GpsOpening {
+  return { latUnits: GPS_NO_FIX, lonUnits: GPS_NO_FIX, salt };
+}
+
+export function isNoFix(opening: Pick<GpsOpening, 'latUnits' | 'lonUnits'>): boolean {
+  return opening.latUnits === GPS_NO_FIX && opening.lonUnits === GPS_NO_FIX;
+}
+
 export function gpsCommitment(opening: GpsOpening): Uint8Array {
   const { latUnits, lonUnits, salt } = opening;
-  if (!Number.isInteger(latUnits) || latUnits < 0 || latUnits > LAT_MAX_UNITS) {
-    throw new ProtocolError(`latitude units out of range: ${latUnits}`);
-  }
-  if (!Number.isInteger(lonUnits) || lonUnits < 0 || lonUnits > LON_MAX_UNITS) {
-    throw new ProtocolError(`longitude units out of range: ${lonUnits}`);
-  }
   if (salt.length !== 32) throw new ProtocolError('GPS salt must be 32 bytes');
+  if (!isNoFix(opening)) {
+    if (!Number.isInteger(latUnits) || latUnits < 0 || latUnits > LAT_MAX_UNITS) {
+      throw new ProtocolError(`latitude units out of range: ${latUnits}`);
+    }
+    if (!Number.isInteger(lonUnits) || lonUnits < 0 || lonUnits > LON_MAX_UNITS) {
+      throw new ProtocolError(`longitude units out of range: ${lonUnits}`);
+    }
+  }
   return sha256(concat(u32be(latUnits), u32be(lonUnits), salt));
 }
 

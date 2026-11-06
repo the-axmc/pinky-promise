@@ -8,6 +8,7 @@ import {
   fromHex,
   gpsCommitment,
   latToUnits,
+  noFixOpening,
   secpGenerateSecret,
   secpPublicKey,
   signReading,
@@ -116,6 +117,18 @@ describe('geofence circuit', () => {
     const fake = { latUnits: box.latMin, lonUnits: box.lonMin, salt: opening.salt };
     expect(toHex(gpsCommitment(fake))).not.toBe(vectors.gps.commitment);
     await expect(proveGeofence(statement, { ...witness, opening: fake })).rejects.toThrow(ProtocolError);
+  });
+
+  it('cannot prove a reading taken without a GPS fix to be inside any venue', async () => {
+    const noFix = noFixOpening(opening.salt);
+    const signed = signReading({ ...verified.reading, gpsCommitment: toHex(gpsCommitment(noFix)) }, TEST_KEYS.device);
+    const blind = verifyReading(signed);
+    const blindStatement = { digest: blind.digest, publicKey: blind.publicKey, box };
+    const blindWitness = { payload: blind.payload, signature: blind.signature, opening: noFix };
+    await expect(proveGeofence(blindStatement, blindWitness)).rejects.toThrow(ProtocolError);
+    // A "box" stretched to include the sentinel is not a valid geofence, so no verifier builds it.
+    const everything = { latMin: 0, latMax: 0xffff_ffff, lonMin: 0, lonMax: 0xffff_ffff };
+    expect(() => publicInputsFor({ ...blindStatement, box: everything })).toThrow(ProtocolError);
   });
 
   it('uses the device key the test vectors publish', () => {

@@ -12,6 +12,7 @@ import { p256PublicKey, secpAddress, secpPublicKey, sha256 } from './crypto';
 import { boxAround, gpsCommitment, latToUnits, lonToUnits, venueHash } from './gps';
 import { type Reading, readingDigest, signReading } from './reading';
 import { CheckpointKind, ZERO_32, checkpointDigest, readingsRoot, signCheckpoint } from './checkpoint';
+import { encodeSealEvidence, sealHash } from './seal';
 import { signAnchorAttestation } from './anchor';
 import { issueDeviceCert } from './cert';
 import { Decision, requestIdHash, signDecisionAttestation } from './attestation';
@@ -60,7 +61,12 @@ export function buildVectors() {
   });
 
   const anchor = signAnchorAttestation({ venueId: venue.venueId, device, blockhash, counter: 12 }, TEST_KEYS.anchor);
-  const photoHash = toHex(sha256(new TextEncoder().encode('seal photo bytes')));
+  // A seal evidence record with a photo and an NFC seal tag whose tamper loop is intact.
+  const sealRecord = encodeSealEvidence({
+    v: 1,
+    photo: { sha256: toHex(sha256(new TextEncoder().encode('seal photo bytes'))), mime: 'image/jpeg', source: 'simulated' },
+    nfc: { uid: '0x04a1b2c3d4e5f6', tagType: 'NTAG213 TT', tamper: 'closed' },
+  });
   const checkpointFields = {
     device,
     assetId,
@@ -71,7 +77,7 @@ export function buildVectors() {
     lastSeq: 9,
     readingCount: readings.length,
     readingsRoot: toHex(readingsRoot(readings.map((r) => fromHex(r.digest)))),
-    photoHash,
+    sealHash: sealHash(sealRecord),
     anchorDigest: toHex(sha256(fromHex(anchor.payload))),
     blockhash,
   };
@@ -147,6 +153,7 @@ export function buildVectors() {
     },
     readings,
     anchor: { fields: { venueId: venue.venueId, device, blockhash, counter: 12 }, ...anchor, digest: checkpointFields.anchorDigest },
+    seal: { record: toHex(sealRecord), text: new TextDecoder().decode(sealRecord), hash: sealHash(sealRecord) },
     checkpoint: { fields: checkpointFields, ...checkpoint, digest: checkpointId },
     attestation: {
       requestId,

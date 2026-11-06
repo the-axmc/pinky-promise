@@ -41,7 +41,7 @@ library Wire {
         uint64 lastSeq;
         uint32 readingCount;
         bytes32 readingsRoot;
-        bytes32 photoHash;
+        bytes32 sealHash;
         bytes32 anchorDigest;
         bytes32 anchorBlockhash;
     }
@@ -83,7 +83,7 @@ library Wire {
         c.lastSeq = uint64(bytes8(p[81:89]));
         c.readingCount = uint32(bytes4(p[89:93]));
         c.readingsRoot = bytes32(p[93:125]);
-        c.photoHash = bytes32(p[125:157]);
+        c.sealHash = bytes32(p[125:157]);
         c.anchorDigest = bytes32(p[157:189]);
         c.anchorBlockhash = bytes32(p[189:221]);
         if (c.kind < 1 || c.kind > 4) revert BadField("kind");

@@ -64,7 +64,7 @@ library WireBuilder {
             lastSeq,
             uint32(lastSeq - firstSeq + 1),
             keccak256("readings root"),
-            keccak256("seal photo"),
+            keccak256("seal evidence"),
             bytes32(0),
             keccak256("anchor block")
         );
