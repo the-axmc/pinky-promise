@@ -2,3 +2,7 @@ export * from './bytes';
 export * from './crypto';
 export * from './gps';
 export * from './reading';
+export * from './checkpoint';
+export * from './anchor';
+export * from './cert';
+export * from './attestation';
