@@ -30,3 +30,7 @@ broadcast/
 .vscode/*
 !.vscode/extensions.json
 .idea/
+
+# firmware: PlatformIO build output, and the headers the syntax check downloads
+.pio/
+firmware/**/check/.deps/
