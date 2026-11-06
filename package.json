@@ -13,7 +13,8 @@
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present --workspace-concurrency=1 test",
     "format": "prettier --write \"**/*.{ts,tsx,json,md,sol}\" --ignore-path .gitignore",
-    "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\" --ignore-path .gitignore"
+    "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\" --ignore-path .gitignore",
+    "device": "pnpm --silent --filter @pinky/device cli"
   },
   "devDependencies": {
     "@types/node": "^22.18.0",

@@ -2,7 +2,7 @@
   "name": "@pinky/device",
   "version": "0.1.0",
   "private": true,
-  "description": "Device core (keys, signing, transaction-signing policy) and the simulator that stands in for the ESP32 until hardware is connected.",
+  "description": "Device core (keys, signing, transaction-signing policy), its simulator, and the bridge that swaps in real ESP32 parts one at a time.",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
@@ -10,8 +10,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p .",
     "test": "vitest run",
-    "sim": "tsx src/cli.ts",
-    "assets:seals": "tsx scripts/render-seals.ts"
+    "assets:seals": "tsx scripts/render-seals.ts",
+    "cli": "tsx src/cli.ts"
   },
   "dependencies": {
     "@pinky/protocol": "workspace:*",
