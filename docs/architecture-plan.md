@@ -16,11 +16,6 @@ We target three tracks, with each sponsor doing a job the system genuinely needs
 | 2 | Arkiv – Build on Arkiv (from scratch) | $4,000 | Sensor readings map naturally onto entities owned by the device wallet, filterable and expiring. |
 | 3 | Hedera – Tokenize Anything (ATS) | $5,000 | The tradability goal: a tokenized warehouse receipt whose compliance rules react to sensor data. The track lists warehouse receipts and freezes. |
 
-Skipped, and why:
-
-- **Whitechain Tokenize** overlaps with Hedera ATS; we can't do both well in one weekend.
-- **Chainlink CRE** is only $1,500, and CCIP needs a genuine cross-chain need we don't have.
-- **EF CROPS** has a strong privacy angle, but EF places a project in at most one of its tracks, and judges want a structural CROPS property in the demo.
 - **Hedera x402** could be a cheap add-on later (sell verified readings per call). Don't plan around it.
 
 ## Architecture
@@ -88,17 +83,16 @@ An ATS warehouse receipt token freezes automatically when the sensor layer confi
 
 One web page: pick a lot, see its readings from Arkiv, the geofence proofs, the 0G checkpoint decisions with request IDs, and the token status on HashScan, then buy the receipt. That screen is the tradability story in one frame.
 
-## Weekend build plan
+## Build plan
 
-Three people, five blocks of roughly six to eight hours, with the end-to-end flow working by hour 30.
 
-| Hours | Hardware | Backend | Frontend |
-| --- | --- | --- | --- |
-| 0–6 | Flash ESP32, SHT31 + GPS readings, signing | Arkiv schema + writes from a mock device | Repo, README skeleton, buyer page shell |
-| 6–14 | ATECC cert, BLE to gateway, camera capture | Noir geofence circuit + prover on gateway | Arkiv query views |
-| 14–22 | Venue anchor ESP32 | 0G vision call + Storage log + safe stop | ATS token issuance on testnet |
-| 22–30 | Enclosure, tamper switch | Freeze/unfreeze wired to checkpoint decisions | End-to-end demo flow |
-| 30–36 | Live booth demo rehearsal | `/arkiv/*.md` files, 0G one-liner | Demo videos (≤3 min for 0G, ≤5 min for Hedera) |
+| Hardware | Backend | Frontend |
+| --- | --- | --- |
+| Flash ESP32, SHT31 + GPS readings, signing | Arkiv schema + writes from a mock device | Repo, README skeleton, buyer page shell |
+| ATECC cert, BLE to gateway, camera capture | Noir geofence circuit + prover on gateway | Arkiv query views |
+| Venue anchor ESP32 | 0G vision call + Storage log + safe stop | ATS token issuance on testnet |
+| Enclosure, tamper switch | Freeze/unfreeze wired to checkpoint decisions | End-to-end demo flow |
+| Live booth demo rehearsal | `/arkiv/*.md` files, 0G one-liner | Demo videos (≤3 min for 0G, ≤5 min for Hedera) |
 
 ## Submission checklist
 
@@ -121,8 +115,8 @@ Three people, five blocks of roughly six to eight hours, with the end-to-end flo
 
 - [ ] Issuance, configuration and at least one lifecycle operation (freeze) on testnet
 - [ ] Contracts verified on HashScan
-- [ ] Video of 5 minutes or less
+- [ ] Video of 4 minutes or less
 
 ## Scope risk
 
-Three chains plus hardware is a lot for one weekend. If we fall behind, cut in this order: the venue anchor, then the ATECC certificate (a key in flash is enough for the demo), then the ZK proof. Never cut the end-to-end flow.
+If we fall behind, cut in this order: the venue anchor, then the ATECC certificate (a key in flash is enough for the demo), then the ZK proof. Never cut the end-to-end flow.
