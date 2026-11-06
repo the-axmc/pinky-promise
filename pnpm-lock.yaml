@@ -84,6 +84,13 @@ importers:
       zod:
         specifier: ^4.6.7
         version: 4.6.7
+    devDependencies:
+      '@pinky/device':
+        specifier: workspace:*
+        version: link:../device
+      '@pinky/devnet':
+        specifier: workspace:*
+        version: link:../devnet
 
   packages/protocol:
     dependencies:
