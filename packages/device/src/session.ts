@@ -48,6 +48,12 @@ export type SessionOptions = {
   simulatedAnchor?: AnchorSource;
   /** Weakest BLE signal (dBm) at which an anchor still counts as in range. */
   minAnchorRssi?: number;
+  /**
+   * Decides, per request, which anchor answers. It is handed the real anchor when there is one
+   * (its own board, or the device board's BLE link). A scripted journey uses this to say "the
+   * real anchor is at the origin; out on the road there is none".
+   */
+  wrapAnchor?: (real: AnchorSource | undefined) => AnchorSource;
   clock?: Clock;
   /** Hears progress and warnings. */
   log?: (line: string) => void;
@@ -79,6 +85,8 @@ export type DeviceSession = {
   mock?: MockBoard;
   mockAnchor?: MockBoard;
   steer: Steering;
+  /** Where the device is right now according to its GPS (real or simulated); null = no fix. */
+  position(): Promise<{ latDeg: number; lonDeg: number } | null>;
   lastStatus(): DeviceStatus;
   close(): Promise<void>;
 };
@@ -155,6 +163,10 @@ export async function openDeviceSession(options: SessionOptions): Promise<Device
       onAnchorProblem: (why) => log(`venue anchor: ${why}`),
     });
 
+    if (options.wrapAnchor) {
+      assembled.hardware.anchor = options.wrapAnchor(plan.anchor === 'board' ? assembled.hardware.anchor : undefined);
+    }
+
     const address = await assembled.hardware.wallet.address();
     let storage: DeviceStorage = new MemoryStorage();
     if (options.dataDir) {
@@ -210,6 +222,7 @@ export async function openDeviceSession(options: SessionOptions): Promise<Device
       ...(mock ? { mock } : {}),
       ...(mockAnchor ? { mockAnchor } : {}),
       steer,
+      position: () => assembled.hardware.position.read(),
       lastStatus: () => assembled.display.last,
       async close() {
         await Promise.all(opened.map((client) => client.close()));

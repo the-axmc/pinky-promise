@@ -9,13 +9,13 @@
  * `pnpm device help` lists everything. docs/hardware.md walks through the bring-up.
  */
 import { resolve } from 'node:path';
-import { emitKeypressEvents } from 'node:readline';
-import { CheckpointKind, type CheckpointKindValue, addressFromPublicKey, checkpointKindName, fromHex } from '@pinky/protocol';
+import { addressFromPublicKey, fromHex } from '@pinky/protocol';
 import { PART_NAMES, type PartName } from './bridge/assemble';
 import { BoardClient } from './bridge/client';
 import { MockBoard } from './bridge/mock-board';
 import { listSerialPorts, openSerialTransport } from './bridge/serial';
-import { HttpGatewayLink, LinkError } from './link';
+import { runInteractive } from './interactive';
+import { HttpGatewayLink } from './link';
 import { probeBoard } from './probe';
 import { DeviceRunner } from './runner';
 import { type DeviceSession, loadProvisioning, openDeviceSession } from './session';
@@ -207,117 +207,18 @@ async function enroll(flags: Flags): Promise<void> {
   }
 }
 
-const KEYS: Record<string, CheckpointKindValue> = {
-  '1': CheckpointKind.WAREHOUSE_IN,
-  '2': CheckpointKind.WAREHOUSE_OUT,
-  '3': CheckpointKind.DOCK_HANDOFF,
-  '4': CheckpointKind.FINAL_DELIVERY,
-};
-
 async function run(flags: Flags): Promise<void> {
   const gateway = gatewayUrl(flags);
   const session = await openSession(flags, gateway);
-  const { device, steer } = session;
-  const runner = new DeviceRunner(device, new HttpGatewayLink(gateway));
-  const intervalMs = Math.max(2, Number(text(flags, 'interval') ?? 10)) * 1000;
-  let stopping = false;
-
-  // One thing at a time: a reading and a checkpoint must not interleave their sequence numbers.
-  let queue: Promise<unknown> = Promise.resolve();
-  const enqueue = (label: string, job: () => Promise<void>) => {
-    queue = queue.then(job).catch((error) => {
-      const detail = error instanceof LinkError ? `${error.message} ${JSON.stringify(error.detail)}` : (error as Error).message;
-      say(`${label} failed: ${detail}`);
-    });
-    return queue;
-  };
-
-  say(`gateway ${gateway}`);
-  while (!device.profile && !stopping) {
-    try {
-      await runner.sync();
-    } catch (error) {
-      say(`cannot reach the gateway: ${(error as Error).message}`);
-    }
-    if (!device.profile) {
-      say('not assigned to a lot yet — enrol this device (pnpm device enroll) and create a lot for it; checking again in 5 s');
-      await new Promise((done) => setTimeout(done, 5_000));
-    }
-  }
-  const profile = device.profile!;
-  say(`lot ${profile.assetId}: ${profile.tempMinCenti / 100}–${profile.tempMaxCenti / 100} °C, ${profile.rhMinCenti / 100}–${profile.rhMaxCenti / 100} %RH`);
-  const stopSigning = runner.startSigning();
-
-  const reading = () =>
-    enqueue('reading', async () => {
-      await runner.reading();
-      say(`reading #${device.seq} sent`);
-    });
-
-  const checkpoint = (kind: CheckpointKindValue) =>
-    enqueue('checkpoint', async () => {
-      say(`${checkpointKindName(kind)}: recording the seal, asking the venue anchor…`);
-      const sent = await runner.checkpoint(kind);
-      say(`checkpoint ${sent.checkpointId.slice(0, 12)}… sent — ${sent.status}: the handoff is NOT accepted until a decision arrives`);
-      // Keep watching without blocking further readings.
-      void (async () => {
-        let last = sent.status;
-        while (!stopping) {
-          const now = await runner.awaitDecision(sent.checkpointId, { timeoutMs: 30_000 }).catch(() => undefined);
-          if (!now) continue;
-          if (now.status !== 'PENDING') {
-            say(`checkpoint ${sent.checkpointId.slice(0, 12)}… → ${now.status}${now.decision ? ` (${now.decision})` : ''}${now.reason ? `: ${now.reason}` : ''}`);
-            return;
-          }
-          if (last !== 'PENDING') last = now.status;
-          say(`checkpoint ${sent.checkpointId.slice(0, 12)}… still PENDING — no decision yet, nothing is accepted`);
-        }
-      })();
-    });
-
-  let simTemp = 450;
-  let simSeal: 'intact' | 'broken' = 'intact';
-  let simFix = true;
-  steer.climate(simTemp, 4500);
-  steer.position({ latDeg: Number(text(flags, 'lat') ?? 19.0761), lonDeg: Number(text(flags, 'lon') ?? 72.8778) });
-
-  const timer = setInterval(reading, intervalMs);
-  void reading();
-
-  const quit = async () => {
-    if (stopping) return;
-    stopping = true;
-    clearInterval(timer);
-    await queue;
-    await stopSigning();
-    await session.close();
-    process.exit(0);
-  };
-
-  console.log('keys:  r reading   1 warehouse in   2 warehouse out   3 dock handoff   4 final delivery   q quit');
-  console.log('       simulated parts only:  + / - temperature   b break/mend the seal   g GPS fix on/off\n');
-  if (process.stdin.isTTY) {
-    emitKeypressEvents(process.stdin);
-    process.stdin.setRawMode(true);
-    process.stdin.on('keypress', (_text, key: { name?: string; sequence?: string; ctrl?: boolean }) => {
-      const pressed = key.sequence ?? '';
-      if (pressed === 'q' || (key.ctrl && key.name === 'c')) return void quit();
-      if (pressed === 'r') return void reading();
-      if (KEYS[pressed]) return void checkpoint(KEYS[pressed]!);
-      if (pressed === '+' || pressed === '-') {
-        simTemp += pressed === '+' ? 50 : -50;
-        say(steer.climate(simTemp, 4500) ? `simulated temperature ${(simTemp / 100).toFixed(1)} °C` : 'the SHT31 is real — warm or cool the sensor itself');
-      } else if (pressed === 'b') {
-        simSeal = simSeal === 'intact' ? 'broken' : 'intact';
-        say(steer.seal(simSeal) ? `simulated seal is now ${simSeal}` : 'the camera is real — point it at the seal you want it to see');
-      } else if (pressed === 'g') {
-        simFix = !simFix;
-        const moved = steer.position(simFix ? { latDeg: Number(text(flags, 'lat') ?? 19.0761), lonDeg: Number(text(flags, 'lon') ?? 72.8778) } : null);
-        say(moved ? `simulated GPS ${simFix ? 'has a fix' : 'lost its fix'}` : 'the GPS is real — it reports what it sees');
-      }
-    });
-  }
-  process.on('SIGINT', () => void quit());
+  const home = { latDeg: Number(text(flags, 'lat') ?? 19.0761), lonDeg: Number(text(flags, 'lon') ?? 72.8778) };
+  await runInteractive({
+    session,
+    runner: new DeviceRunner(session.device, new HttpGatewayLink(gateway)),
+    intervalMs: Math.max(2, Number(text(flags, 'interval') ?? 10)) * 1000,
+    home,
+    say,
+  });
+  await session.close();
 }
 
 async function main(): Promise<void> {

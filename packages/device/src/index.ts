@@ -9,3 +9,4 @@ export * from './runner';
 export * from './bridge/index';
 export * from './probe';
 export * from './session';
+export * from './interactive';
