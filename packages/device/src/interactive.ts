@@ -90,7 +90,8 @@ export async function runInteractive(options: InteractiveOptions): Promise<void>
       })();
     });
 
-  let simTemp = 450;
+  // Simulated parts start inside the lot's limits, whatever they are.
+  let simTemp = Math.round((profile.tempMinCenti + profile.tempMaxCenti) / 2 / 50) * 50;
   let simSeal: 'intact' | 'broken' = 'intact';
   let simFix = true;
   const home = options.home ?? { latDeg: 19.0761, lonDeg: 72.8778 };

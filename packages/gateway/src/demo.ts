@@ -50,7 +50,8 @@ const ORIGIN = { venueId: 'WH-MUM-01', name: 'Mumbai cold store', latDeg: 19.076
 const DOCK = { venueId: 'DK-PNQ-02', name: 'Pune receiving dock', latDeg: 18.5204, lonDeg: 73.8567 };
 const ROAD = { latDeg: 18.8, lonDeg: 73.3 };
 const PORTS = { gateway: 8787, arkiv: 8645, arkivAnvil: 8646, hedera: 8745, zg: 8845 };
-const LIMITS = { tempMinCenti: 200, tempMaxCenti: 800, rhMinCenti: 2000, rhMaxCenti: 7000 };
+/** A cold-chain pharma pallet: 2–8 °C, 20–70 % relative humidity. */
+const COLD_CHAIN = { tempMinCenti: 200, tempMaxCenti: 800, rhMinCenti: 2000, rhMaxCenti: 7000 };
 
 type Where = 'origin' | 'road' | 'dock';
 type Flags = Record<string, string | true>;
@@ -77,7 +78,7 @@ const stateName = (value: number) => Object.entries(LotState).find(([, v]) => v 
 
 async function main(): Promise<void> {
   const flags = parseFlags(process.argv.slice(2));
-  if (flags.help) return console.log('pnpm demo [--pause [seconds]] [--interactive] [--port <port|mock>] [--anchor-port <port|mock>] [--sim parts] [--photos dir] [--once] [--verbose]');
+  if (flags.help) return console.log('pnpm demo [--pause [seconds]] [--interactive] [--port <port|mock>] [--anchor-port <port|mock>] [--sim parts] [--photos dir] [--temp-range min:max] [--once] [--verbose]');
 
   const zgEnv =
     process.env.ZG_ROUTER_URL && process.env.ZG_API_KEY && process.env.ZG_MODEL
@@ -201,6 +202,29 @@ async function main(): Promise<void> {
       return json;
     };
 
+    // The lot's limits. With a real sensor on a desk, 2–8 °C would breach on the first reading, so
+    // the limits are set around what it measures now; warming it or breathing on it then breaches.
+    let limits = COLD_CHAIN;
+    const range = text(flags, 'temp-range');
+    if (range) {
+      const [low, high] = range.split(':').map(Number);
+      if (low === undefined || high === undefined || !(low < high)) throw new Error('--temp-range wants <min>:<max> in °C, e.g. 15:28');
+      limits = { ...COLD_CHAIN, tempMinCenti: Math.round(low * 100), tempMaxCenti: Math.round(high * 100) };
+    } else if (session.plan.climate === 'board' && session.board && !session.mock) {
+      const now = await session.board.request('climate.read');
+      limits = {
+        tempMinCenti: Math.floor((now.temp_centi - 800) / 100) * 100,
+        tempMaxCenti: Math.ceil((now.temp_centi + 400) / 100) * 100,
+        rhMinCenti: 500,
+        rhMaxCenti: Math.min(9500, Math.max(7000, Math.ceil((now.rh_centi + 1500) / 500) * 500)),
+      };
+      say(
+        `real SHT31 reads ${(now.temp_centi / 100).toFixed(1)} °C, ${(now.rh_centi / 100).toFixed(0)} %RH: this lot allows ` +
+          `${limits.tempMinCenti / 100}–${limits.tempMaxCenti / 100} °C and up to ${limits.rhMaxCenti / 100} %RH (override with --temp-range)`,
+      );
+    }
+    const band = `${limits.tempMinCenti / 100}–${limits.tempMaxCenti / 100} °C`;
+
     act('Setup');
     await admin('/venues', { ...origin, radiusM: 150, anchor: originAnchor });
     await admin('/venues', { ...DOCK, radiusM: 150, anchor: simulated.dock.address });
@@ -212,7 +236,7 @@ async function main(): Promise<void> {
       assetId: ASSET,
       title: 'Cold-chain pharma pallet #42',
       device: device.address,
-      ...LIMITS,
+      ...limits,
       units: 100,
       unitValueCents: 1800,
       endsAt: Math.floor(Date.now() / 1000) + 3 * 86_400,
@@ -220,16 +244,18 @@ async function main(): Promise<void> {
       depositor: depositor.address,
     });
     await admin(`/lots/${ASSET}/investors`, { address: buyer.address });
-    say(`lot ${ASSET} created: receipt token ${lot.token} (ATS), 100 units, 2–8 °C, buyer ${buyer.address} allow-listed`);
+    say(`lot ${ASSET} created: receipt token ${lot.token} (ATS), 100 units, ${band}, buyer ${buyer.address} allow-listed`);
 
     const runner = new DeviceRunner(device, new HttpGatewayLink(stack.url));
     await runner.sync();
 
     // --- helpers shared by the script and the keyboard ---------------------------------------------
+    // The script's temperatures are written for 2–8 °C; shift them to wherever this lot's band is.
+    const shifted = (tempCenti: number) => tempCenti + (limits.tempMinCenti - COLD_CHAIN.tempMinCenti);
     const place = (to: Where, tempCenti?: number) => {
       where = to;
       const moved = steer.position(spots[to]);
-      if (tempCenti !== undefined && !steer.climate(tempCenti, 4500)) say('(the SHT31 is real: it reports what it measures)');
+      if (tempCenti !== undefined && !steer.climate(shifted(tempCenti), 4500)) say('(the SHT31 is real: it reports what it measures)');
       return moved;
     };
 
@@ -243,7 +269,7 @@ async function main(): Promise<void> {
     const reading = async () => {
       await runner.reading();
       const taken = decodeReading(fromHex(device.storedReading(device.seq)!.payload));
-      const ok = isInRange(LIMITS, taken.tempCenti, taken.rhCenti);
+      const ok = isInRange(limits, taken.tempCenti, taken.rhCenti);
       say(`   reading #${taken.seq}: ${(taken.tempCenti / 100).toFixed(2)} °C, ${(taken.rhCenti / 100).toFixed(1)} %RH${ok ? '' : '   ← OUT OF RANGE'}`);
       return { ...taken, inRange: ok };
     };
@@ -360,10 +386,10 @@ async function main(): Promise<void> {
       act('3. On the road: the cooling fails');
       place('road', 520);
       await reading();
-      if (steer.climate(1260, 4500)) {
+      if (steer.climate(limits.tempMaxCenti + 460, 4500)) {
         await reading();
       } else {
-        say('the SHT31 is real: warm it above 8 °C now (a hand is enough) — waiting up to 90 s for an out-of-range reading');
+        say(`the SHT31 is real: push it out of ${band} now — hold it in your hand or breathe on it. Waiting up to 90 s for an out-of-range reading`);
         const deadline = Date.now() + 90_000;
         let breached = false;
         while (!breached && Date.now() < deadline) {
@@ -404,7 +430,7 @@ async function main(): Promise<void> {
       }
 
       act(`${frozen ? '7' : '6'}. Final delivery`);
-      steer.climate(480, 4500);
+      steer.climate(shifted(480), 4500);
       await reading();
       await handoff(CheckpointKind.FINAL_DELIVERY);
       await report();
