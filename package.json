@@ -15,7 +15,10 @@
     "format": "prettier --write \"**/*.{ts,tsx,json,md,sol}\" --ignore-path .gitignore",
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\" --ignore-path .gitignore",
     "device": "pnpm --silent --filter @pinky/device cli",
-    "demo": "pnpm --silent --filter @pinky/gateway demo"
+    "demo": "pnpm --silent --filter @pinky/gateway demo",
+    "gateway": "pnpm --silent --filter @pinky/gateway start",
+    "doctor": "pnpm --silent --filter @pinky/gateway doctor",
+    "deploy:hedera": "pnpm --silent --filter @pinky/gateway deploy:hedera"
   },
   "devDependencies": {
     "@types/node": "^22.18.0",
