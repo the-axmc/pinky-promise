@@ -20,3 +20,7 @@ fs_permissions = [
 
 [fmt]
 line_length = 110
+
+# Lint the contracts we ship; tests and scripts trade strictness for readability.
+[lint]
+ignore = ["test/**/*.sol", "script/**/*.sol"]
