@@ -15,8 +15,16 @@
  *   typeId  low 7 bits = type, bit 7 = indexed
  *   value   bool / i32 / u64 / u256 / dec / addr / key: one 32-byte word; str: UTF-8; bytes: raw
  */
-import { type Hex, decodeAbiParameters, decodeFunctionData, parseAbi, parseAbiParameters } from 'viem';
-import { ProtocolError, fromHex } from '../bytes';
+import {
+  type Hex,
+  decodeAbiParameters,
+  decodeFunctionData,
+  encodeAbiParameters,
+  encodeFunctionData,
+  parseAbi,
+  parseAbiParameters,
+} from 'viem';
+import { ProtocolError, fromHex, toHex, utf8 } from '../bytes';
 
 /** Where every Arkiv entity operation is sent. */
 export const ARKIV_ENGINE_ADDRESS = '0x4400000000000000000000000000000000000044' as const;
@@ -191,4 +199,104 @@ export function plainValue(value: { type: string; value: unknown }): PlainAttrib
     default:
       throw new ProtocolError(`cannot compare Arkiv values of type ${value.type}`);
   }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Reference encoder
+// ---------------------------------------------------------------------------------------------
+
+const TYPE_IDS: Record<ArkivTypeTag, number> = {
+  bool: 1,
+  i32: 2,
+  u64: 3,
+  u256: 4,
+  dec: 5,
+  bytes: 7,
+  str: 8,
+  addr: 9,
+  key: 10,
+};
+
+const word256 = (value: bigint): Hex => `0x${BigInt.asUintN(256, value).toString(16).padStart(64, '0')}`;
+
+/** Encodes one typed value to its wire bytes — the inverse of {@link decodePlainValue}. */
+export function encodeTypedValue(value: { type: string; value: unknown }): Hex {
+  switch (value.type) {
+    case 'bool':
+      return word256(value.value ? 1n : 0n);
+    case 'i32':
+    case 'u64':
+    case 'u256':
+      return word256(BigInt(value.value as bigint | number));
+    case 'addr':
+      return word256(BigInt(value.value as string));
+    case 'key':
+    case 'bytes':
+      return (value.value as string).toLowerCase() as Hex;
+    case 'str':
+      return toHex(utf8(value.value as string));
+    default:
+      throw new ProtocolError(`cannot encode Arkiv values of type ${value.type}`);
+  }
+}
+
+/** The parts of an SDK schema the encoder reads: its tag and which columns are indexed. */
+export type SchemaShape = {
+  readonly tag?: { readonly value: string } | undefined;
+  readonly columns: Readonly<Record<string, { readonly isIndexed: boolean }>>;
+};
+
+export type CreateSpec = {
+  schema: SchemaShape;
+  /** Column name to typed value, as the xxxValues() builders in entities.ts return. */
+  values: Record<string, { type: string; value: unknown }>;
+  salt: bigint;
+  expiresAt?: bigint;
+  minLifetime?: bigint;
+  readonly?: boolean;
+  permissionlessExtension?: boolean;
+};
+
+/**
+ * Builds the calldata of an `execute` call that creates the given entities, byte for byte as
+ * the Arkiv SDK does (a test checks this against the SDK's own encoder). Not used to send
+ * transactions — the SDK does that — but as the executable description of the format: firmware
+ * that wants to build or verify these transactions on the device follows this function.
+ */
+export function encodeCreates(creates: CreateSpec[]): Hex {
+  const ops = creates.map((create) => {
+    const attributes: { name: Hex; typeId: number; value: Hex }[] = [];
+    const push = (name: string, value: { type: string; value: unknown }, indexed: boolean) => {
+      const typeId = TYPE_IDS[value.type as ArkivTypeTag];
+      if (typeId === undefined) throw new ProtocolError(`unknown Arkiv type ${value.type}`);
+      attributes.push({
+        name: toHex(utf8(name.padEnd(32, '\0'))),
+        typeId: typeId | (indexed ? INDEXED_FLAG : 0),
+        value: encodeTypedValue(value),
+      });
+    };
+    if (create.schema.tag) push('arkiv.schema', { type: 'str', value: create.schema.tag.value }, true);
+    for (const [name, value] of Object.entries(create.values)) {
+      const column = create.schema.columns[name];
+      if (!column) throw new ProtocolError(`"${name}" is not a column of the schema`);
+      push(name, value, column.isIndexed);
+    }
+    // The engine requires attributes sorted by their encoded name.
+    attributes.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+    const creationFlags =
+      (create.readonly ? READONLY_FLAG : 0) | (create.permissionlessExtension ? PERMISSIONLESS_EXTENSION_FLAG : 0);
+    return {
+      operation: ARKIV_OPERATION.create,
+      operationData: encodeAbiParameters(CREATE_PARAMS, [
+        {
+          salt: create.salt,
+          expiresAt: create.expiresAt ?? 0n,
+          minLifetime: create.minLifetime ?? 0n,
+          creationFlags,
+          attributes,
+        },
+      ]),
+    };
+  });
+  return encodeFunctionData({ abi: EXECUTE_ABI, functionName: 'execute', args: [ops] });
 }

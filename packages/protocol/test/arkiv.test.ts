@@ -28,6 +28,7 @@ import {
   checkpointValues,
   decodeExecute,
   deviceValues,
+  encodeCreates,
   fitString,
   geoProofValues,
   lifetimeSeconds,
@@ -214,6 +215,28 @@ describe('execute calldata decoder', () => {
     const [create] = decodeExecute(executeCalldata(Lots, values, 3)).creates;
     expect(create!.attributes.get('temp_min_c')).toEqual({ type: 'i32', indexed: false, value: 200 });
     expect(create!.permissionlessExtension).toBe(true);
+  });
+
+  it('has a reference encoder that matches the SDK byte for byte', () => {
+    const cases: Array<[any, any, number]> = [
+      [Readings, sampleReadingValues(), 1],
+      [Checkpoints, sampleCheckpointValues(), 1],
+      [Venues, venueValues(venue), 3],
+      [Devices, deviceValues({ certBundle: vectors.cert.bundle, venueIds: ['WH-MUM-01'], label: 'Sensor', registeredAt: 5 }), 3],
+    ];
+    for (const [schema, values, flags] of cases) {
+      const ours = encodeCreates([
+        {
+          schema,
+          values,
+          salt: 7n,
+          minLifetime: 3600n,
+          readonly: (flags & 1) !== 0,
+          permissionlessExtension: (flags & 2) !== 0,
+        },
+      ]);
+      expect(ours).toBe(executeCalldata(schema, values, flags));
+    }
   });
 
   it('reports non-create operations so a signer can refuse them', () => {
