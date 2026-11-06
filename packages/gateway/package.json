@@ -1,0 +1,26 @@
+{
+  "name": "@pinky/gateway",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The relay: verifies device packets, proves location, asks 0G for custody decisions, writes Arkiv entities and drives the Hedera oracle.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run",
+    "start": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "@0gfoundation/0g-storage-ts-sdk": "1.2.13",
+    "@arkiv-network/sdk": "1.0.1",
+    "@hono/node-server": "^2.1.6",
+    "@pinky/protocol": "workspace:*",
+    "@pinky/zk": "workspace:*",
+    "ethers": "6.13.1",
+    "hono": "^4.13.16",
+    "viem": "^2.57.16",
+    "zod": "^4.6.7"
+  }
+}

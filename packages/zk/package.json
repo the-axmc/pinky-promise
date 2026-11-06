@@ -1,0 +1,24 @@
+{
+  "name": "@pinky/zk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Noir geofence circuit and its prover and verifier: proves a device-signed reading was taken inside a venue without revealing where.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./artifacts/*": "./artifacts/*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run",
+    "build:circuit": "tsx scripts/build-circuit.ts"
+  },
+  "dependencies": {
+    "@aztec/bb.js": "5.3.0",
+    "@noir-lang/noir_js": "1.0.0",
+    "@pinky/protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "@noir-lang/noir_wasm": "1.0.0"
+  }
+}

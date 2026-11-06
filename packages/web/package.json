@@ -1,0 +1,27 @@
+{
+  "name": "@pinky/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Buyer view: pick a lot, verify its readings, proofs and custody decisions, see the token status, buy the receipt.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@arkiv-network/sdk": "1.0.1",
+    "@aztec/bb.js": "5.3.0",
+    "@pinky/protocol": "workspace:*",
+    "@pinky/zk": "workspace:*",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "viem": "^2.57.16"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "vite": "^8.3.6"
+  }
+}

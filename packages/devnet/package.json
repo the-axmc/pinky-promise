@@ -9,6 +9,14 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run",
     "snapshot:ats": "tsx src/hedera/snapshot-ats.ts"
+  },
+  "dependencies": {
+    "@arkiv-network/sdk": "1.0.1",
+    "@hono/node-server": "^2.1.6",
+    "@pinky/protocol": "workspace:*",
+    "hono": "^4.13.16",
+    "viem": "^2.57.16"
   }
 }
