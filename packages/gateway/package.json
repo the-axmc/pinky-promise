@@ -13,7 +13,8 @@
     "start": "tsx src/main.ts",
     "demo": "tsx src/demo.ts",
     "doctor": "tsx src/doctor.ts",
-    "deploy:hedera": "tsx src/deploy.ts"
+    "deploy:hedera": "tsx src/deploy.ts",
+    "arkiv:query": "tsx src/query.ts"
   },
   "dependencies": {
     "@0gfoundation/0g-storage-ts-sdk": "1.2.13",

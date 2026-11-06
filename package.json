@@ -19,7 +19,8 @@
     "gateway": "pnpm --silent --filter @pinky/gateway start",
     "doctor": "pnpm --silent --filter @pinky/gateway doctor",
     "deploy:hedera": "pnpm --silent --filter @pinky/gateway deploy:hedera",
-    "web": "pnpm --silent --filter @pinky/web dev"
+    "web": "pnpm --silent --filter @pinky/web dev",
+    "arkiv:query": "pnpm --silent --filter @pinky/gateway arkiv:query"
   },
   "devDependencies": {
     "@types/node": "^22.18.0",
