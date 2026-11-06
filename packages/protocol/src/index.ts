@@ -8,3 +8,5 @@ export * from './cert';
 export * from './attestation';
 export * from './lot';
 export * from './policy';
+
+export * from './vectors';
