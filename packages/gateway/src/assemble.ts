@@ -4,6 +4,7 @@
  * 0G Storage behind it.
  */
 import { join } from 'node:path';
+import { rabdi } from '@arkiv-network/sdk/chains';
 import { ArkivAdapter } from './arkiv/adapter';
 import { SignRequestQueue } from './arkiv/sign-requests';
 import type { GatewayConfig } from './config';
@@ -22,6 +23,16 @@ export type Assembled = {
   episodes: ZgEpisodeStore;
   publicConfig: PublicConfig;
 };
+
+/**
+ * The Arkiv endpoint that is published to browsers. Never the gateway's own: on Rabdi the
+ * access key is part of the URL, and publishing it would hand the operator's key to everyone.
+ */
+export function publicArkivRpcUrl(config: Pick<GatewayConfig, 'arkiv'>): string {
+  if (config.arkiv.publicRpcUrl) return config.arkiv.publicRpcUrl;
+  if (config.arkiv.rpcUrl) return config.arkiv.rpcUrl; // a custom or local node carries no key
+  return rabdi({ accessKey: '' }).rpcUrls.default.http[0]!;
+}
 
 export function assembleGateway(config: GatewayConfig, log?: GatewayOptions['log']): Assembled {
   const signRequests = new SignRequestQueue(120_000);
@@ -68,7 +79,7 @@ export function assembleGateway(config: GatewayConfig, log?: GatewayOptions['log
   });
   const publicConfig: PublicConfig = {
     arkiv: {
-      rpcUrl: arkiv.chain.rpcUrls.default.http[0]!,
+      rpcUrl: publicArkivRpcUrl(config),
       chainId: arkiv.chain.id,
       registry: arkiv.registry,
       ...(config.arkiv.explorerUrl ? { explorerUrl: config.arkiv.explorerUrl } : {}),

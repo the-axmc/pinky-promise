@@ -35,6 +35,7 @@ const Env = z.object({
   ARKIV_RPC_URL: z.string().url().optional(),
   ARKIV_CHAIN_ID: z.coerce.number().int().optional(),
   ARKIV_ACCESS_KEY: z.string().optional(),
+  ARKIV_PUBLIC_RPC_URL: z.string().url().optional(),
   ARKIV_EXPLORER_URL: z.string().url().optional(),
 
   HEDERA_RPC_URL: z.string().url().default('https://testnet.hashio.io/api'),
@@ -83,7 +84,7 @@ export type GatewayConfig = {
   demo: boolean;
   geofenceProofs: boolean;
   keys: { registry: Hex; gateway: Hex; attestor: Hex };
-  arkiv: { rpcUrl?: string; chainId?: number; accessKey?: string; explorerUrl?: string };
+  arkiv: { rpcUrl?: string; chainId?: number; accessKey?: string; publicRpcUrl?: string; explorerUrl?: string };
   hedera: {
     rpcUrl: string;
     chainId: number;
@@ -156,6 +157,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env, only?: Readonly
       ...(e.ARKIV_RPC_URL ? { rpcUrl: e.ARKIV_RPC_URL } : {}),
       ...(e.ARKIV_CHAIN_ID ? { chainId: e.ARKIV_CHAIN_ID } : {}),
       ...(e.ARKIV_ACCESS_KEY ? { accessKey: e.ARKIV_ACCESS_KEY } : {}),
+      ...(e.ARKIV_PUBLIC_RPC_URL ? { publicRpcUrl: e.ARKIV_PUBLIC_RPC_URL } : {}),
       ...(e.ARKIV_EXPLORER_URL ? { explorerUrl: e.ARKIV_EXPLORER_URL } : {}),
     },
     hedera: {

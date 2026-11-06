@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { publicArkivRpcUrl } from '../src/assemble';
 import { ConfigError, readConfig } from '../src/config';
 
 const KEY = (byte: string) => `0x${byte.repeat(32)}`;
@@ -65,6 +66,16 @@ describe('gateway configuration', () => {
     const config = readConfig({ HEDERA_ISSUER_KEY: KEY('44') }, ['HEDERA_ISSUER_KEY']);
     expect(config.hedera).toMatchObject({ rpcUrl: 'https://testnet.hashio.io/api', chainId: 296, issuerKey: KEY('44') });
     expect(() => readConfig({}, ['HEDERA_ISSUER_KEY'])).toThrow(/HEDERA_ISSUER_KEY is not set/);
+  });
+
+  it('never publishes the Arkiv access key to browsers', () => {
+    const secret = 'my-secret-access-key-0123456789';
+    const withKey = readConfig({ ...complete, ARKIV_ACCESS_KEY: secret });
+    expect(publicArkivRpcUrl(withKey)).toMatch(/^https:\/\//);
+    expect(publicArkivRpcUrl(withKey)).not.toContain(secret);
+    // An operator can name the endpoint browsers should use; a custom node has no key to hide.
+    expect(publicArkivRpcUrl(readConfig({ ...complete, ARKIV_ACCESS_KEY: secret, ARKIV_PUBLIC_RPC_URL: 'https://arkiv.example/rpc' }))).toBe('https://arkiv.example/rpc');
+    expect(publicArkivRpcUrl(readConfig({ ...complete, ARKIV_RPC_URL: 'http://127.0.0.1:8645' }))).toBe('http://127.0.0.1:8645');
   });
 
   it('reads overrides and flags', () => {

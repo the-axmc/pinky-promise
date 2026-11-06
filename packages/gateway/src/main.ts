@@ -17,7 +17,7 @@ async function main(): Promise<void> {
   const { gateway, zg, publicConfig } = assembleGateway(config, log);
 
   console.log(`pinky gateway${envFile ? ` (config: ${envFile})` : ''}
-  Arkiv    ${publicConfig.arkiv.rpcUrl.replace(/\/[^/]{20,}$/, '/…')}  chain ${publicConfig.arkiv.chainId}
+  Arkiv    ${publicConfig.arkiv.rpcUrl}  chain ${publicConfig.arkiv.chainId}  (published endpoint; the access key stays here)
            registry ${publicConfig.arkiv.registry}   gateway ${publicConfig.gateway}
   Hedera   ${publicConfig.hedera.rpcUrl}  chain ${publicConfig.hedera.chainId}
            oracle ${publicConfig.hedera.oracle}   market ${publicConfig.hedera.market}
