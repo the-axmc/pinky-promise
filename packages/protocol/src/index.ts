@@ -6,3 +6,5 @@ export * from './checkpoint';
 export * from './anchor';
 export * from './cert';
 export * from './attestation';
+export * from './lot';
+export * from './policy';
