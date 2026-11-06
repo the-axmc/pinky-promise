@@ -34,3 +34,6 @@ broadcast/
 # firmware: PlatformIO build output, and the headers the syntax check downloads
 .pio/
 firmware/**/check/.deps/
+
+# private planning doc, kept locally only
+docs/architecture-plan.md
