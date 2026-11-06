@@ -100,12 +100,17 @@ export async function startAnvil(options: AnvilOptions): Promise<Anvil> {
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
 
+  // A chain must not outlive the process that started it (see ../anvil.ts).
+  const killOnExit = () => void child.kill('SIGKILL');
+  process.once('exit', killOnExit);
+
   return {
     url,
     port,
     pid: child!.pid,
     stop: () =>
       new Promise<void>((resolve) => {
+        process.removeListener('exit', killOnExit);
         if (exited) return resolve();
         const force = setTimeout(() => child.kill('SIGKILL'), 3000);
         child.once('exit', () => {

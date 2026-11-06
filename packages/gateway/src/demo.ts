@@ -104,10 +104,16 @@ async function main(): Promise<void> {
   });
 
   let session: DeviceSession | undefined;
-  const shutdown = async () => {
-    await session?.close().catch(() => {});
-    await stack.stop().catch(() => {});
-  };
+  let shuttingDown: Promise<void> | undefined;
+  const shutdown = () =>
+    (shuttingDown ??= (async () => {
+      await session?.close().catch(() => {});
+      await stack.stop().catch(() => {});
+    })());
+  // Ctrl-C or a kill at any point of the run stops the local chains too.
+  const onSignal = () => void shutdown().finally(() => process.exit(0));
+  process.on('SIGINT', onSignal);
+  process.on('SIGTERM', onSignal);
 
   try {
     console.log(`
@@ -524,11 +530,8 @@ async function main(): Promise<void> {
 
   Ctrl-C stops everything (the local chains keep no state).
 `);
-    await new Promise<void>((resolve) => {
-      process.once('SIGINT', resolve);
-      process.once('SIGTERM', resolve);
-    });
-    await shutdown();
+    // Stays up until a signal arrives; the handler above shuts everything down.
+    await new Promise<never>(() => {});
   } catch (error) {
     await shutdown();
     throw error;
@@ -538,7 +541,14 @@ async function main(): Promise<void> {
 main().then(
   () => process.exit(0),
   (error) => {
-    console.error(`\n${(error as Error).stack ?? error}`);
+    const message = String((error as Error).message ?? error);
+    if (/in use|EADDRINUSE|anvil exited/i.test(message)) {
+      console.error(
+        `\n${message}\n\nA port the demo needs is taken, most likely by an earlier demo that is still running.\nStop it (Ctrl-C in its terminal), or clear leftover local chains with: pkill anvil`,
+      );
+    } else {
+      console.error(`\n${(error as Error).stack ?? error}`);
+    }
     process.exit(1);
   },
 );

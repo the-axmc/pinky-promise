@@ -102,12 +102,18 @@ export async function startAnvil(options: AnvilOptions = {}): Promise<AnvilInsta
   })();
   await Promise.race([ready, failed]);
 
+  // A chain must not outlive the process that started it: an orphan would keep the port and make
+  // the next start fail in a confusing way.
+  const killOnExit = () => void child.kill('SIGKILL');
+  process.once('exit', killOnExit);
+
   return {
     url,
     port,
     chainId,
     stop: () =>
       new Promise<void>((resolve) => {
+        process.removeListener('exit', killOnExit);
         if (child.exitCode !== null) return resolve();
         child.removeAllListeners('exit');
         child.once('exit', () => resolve());
