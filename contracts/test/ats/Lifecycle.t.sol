@@ -196,6 +196,50 @@ contract LifecycleTest is AtsFixture {
         assertEq(token.getFrozenTokens(alice), 100);
     }
 
+    /// Gas estimators look for the smallest limit that does not revert. If a starved freeze or
+    /// unfreeze were silently "deferred", they would settle on a limit at which nothing is
+    /// frozen or unfrozen. (This was caught by the end-to-end test against the gateway.)
+    function test_starvedReleaseRevertsInsteadOfSkippingTheUnfreeze() public {
+        _issueAndList();
+        _checkpoint(W.WAREHOUSE_OUT, W.ACCEPT_CUSTODY, false);
+        _checkpoint(W.DOCK_HANDOFF, W.REJECT, true);
+        assertEq(token.getFrozenTokens(alice), 100);
+
+        // Enough gas for the oracle's own bookkeeping, not for the token's unfreeze.
+        vm.prank(inspector);
+        (bool ok,) = address(oracle).call{gas: 150_000}(
+            abi.encodeCall(CustodyOracle.release, (LOT, keccak256("report"), seq))
+        );
+        assertFalse(ok, "a starved release must revert");
+        assertEq(uint8(_state()), uint8(CustodyOracle.LotState.FROZEN));
+
+        vm.prank(inspector);
+        oracle.release(LOT, keccak256("report"), seq);
+        assertEq(token.getFrozenTokens(alice), 0);
+        assertEq(uint8(_state()), uint8(CustodyOracle.LotState.IN_CUSTODY));
+    }
+
+    function test_starvedFreezeRevertsInsteadOfSkippingTheFreeze() public {
+        _issueAndList();
+        _checkpoint(W.WAREHOUSE_OUT, W.ACCEPT_CUSTODY, false);
+
+        seq += 10;
+        bytes memory cp = W.checkpoint(device, LOT, W.DOCK_HANDOFF, seq);
+        bytes memory att = W.attestation(cp, W.REJECT, true);
+        bytes memory reading = W.reading(device, LOT, 1260, 4550, seq - 1);
+        bytes memory call_ = abi.encodeCall(
+            CustodyOracle.submitCheckpoint,
+            (cp, W.sign(DEVICE_KEY, cp), att, W.sign(ATTESTOR_KEY, att), reading, W.sign(DEVICE_KEY, reading))
+        );
+        (bool ok,) = address(oracle).call{gas: 260_000}(call_);
+        assertFalse(ok, "a starved freeze must revert");
+        assertEq(uint8(_state()), uint8(CustodyOracle.LotState.IN_TRANSIT));
+
+        (ok,) = address(oracle).call(call_);
+        assertTrue(ok);
+        assertEq(token.getFrozenTokens(alice), 100);
+    }
+
     // --- market ----------------------------------------------------------------------------
 
     function test_buyerWithoutKycCannotBuyAndKeepsTheirMoney() public {

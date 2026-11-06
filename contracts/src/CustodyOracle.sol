@@ -176,6 +176,7 @@ contract CustodyOracle is ICompliance {
     error InvalidTransition(LotState state, uint8 kind, uint8 decision);
     error NothingToRelease(bytes32 lotId);
     error NotFrozen(bytes32 lotId);
+    error InsufficientGas();
 
     // -----------------------------------------------------------------------------------------
     // Registration
@@ -593,9 +594,11 @@ contract CustodyOracle is ICompliance {
         IAtsToken token = IAtsToken(lot.token);
         uint256 page = freezePage[lotId];
         address[] memory holders;
+        uint256 gasBefore = gasleft();
         try token.getSecurityHolders(page, HOLDER_PAGE) returns (address[] memory result) {
             holders = result;
         } catch {
+            _revertIfOutOfGas(gasBefore);
             freezePending[lotId] = true;
             emit FreezeDeferred(lotId, address(0));
             return;
@@ -605,11 +608,13 @@ contract CustodyOracle is ICompliance {
             address holder = holders[i];
             uint256 free = token.balanceOf(holder);
             if (free == 0) continue;
+            gasBefore = gasleft();
             try token.freezePartialTokens(holder, free) {
                 if (frozenUnits[lotId][holder] == 0) _frozenHolders[lotId].push(holder);
                 frozenUnits[lotId][holder] += free;
                 emit UnitsFrozen(lotId, holder, free);
             } catch {
+                _revertIfOutOfGas(gasBefore);
                 freezePending[lotId] = true;
                 emit FreezeDeferred(lotId, holder);
                 return;
@@ -621,6 +626,15 @@ contract CustodyOracle is ICompliance {
         if (more) freezePage[lotId] = page + 1;
     }
 
+    /// @dev A token call that fails is deferred, not fatal — unless it failed because this
+    ///      transaction did not carry enough gas. A call receives 63/64 of the gas left; if
+    ///      almost nothing remains afterwards, the call starved rather than refused. Reverting
+    ///      then matters for gas estimation: without it, an estimator settles on a limit at
+    ///      which the freeze silently does not happen.
+    function _revertIfOutOfGas(uint256 gasBefore) private view {
+        if (gasleft() < gasBefore / 32) revert InsufficientGas();
+    }
+
     /// @dev Unfreezes up to one page of the holders this oracle froze, newest first.
     function _unfreezePage(bytes32 lotId, Lot storage lot) private {
         IAtsToken token = IAtsToken(lot.token);
@@ -629,9 +643,11 @@ contract CustodyOracle is ICompliance {
             address holder = holders[holders.length - 1];
             uint256 amount = frozenUnits[lotId][holder];
             if (amount != 0) {
+                uint256 gasBefore = gasleft();
                 try token.unfreezePartialTokens(holder, amount) {
                     emit UnitsUnfrozen(lotId, holder, amount);
                 } catch {
+                    _revertIfOutOfGas(gasBefore);
                     emit UnfreezeDeferred(lotId, holder);
                     return;
                 }
