@@ -5,7 +5,8 @@
   "description": "The signed wire formats of the sensor oracle: reading, checkpoint, device certificate, venue anchor, decision attestation. Everything else in the repo verifies these same bytes.",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./arkiv": "./src/arkiv/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p .",
