@@ -39,9 +39,16 @@ import {
 } from '../src/arkiv';
 
 const vectors = buildVectors();
-const venue = { venueId: vectors.gps.venueId, name: 'Mumbai cold store', box: vectors.gps.box, anchor: vectors.keys.anchor.address };
+const venue = {
+  venueId: vectors.gps.venueId,
+  name: 'Mumbai cold store',
+  box: vectors.gps.box,
+  anchor: vectors.keys.anchor.address,
+};
 
-const EXECUTE_ABI = parseAbi(['function execute((uint8 operation, bytes operationData)[] ops) external returns (bytes32[] keys)']);
+const EXECUTE_ABI = parseAbi([
+  'function execute((uint8 operation, bytes operationData)[] ops) external returns (bytes32[] keys)',
+]);
 const CREATE_PARAMS = parseAbiParameters(
   '(uint128 salt, uint64 expiresAt, uint64 minLifetime, uint8 creationFlags, (bytes32 name, uint8 typeId, bytes value)[] attributes)',
 );
@@ -52,7 +59,11 @@ function executeCalldata(schema: any, values: any, creationFlags = 1): Hex {
   const operationData = encodeAbiParameters(CREATE_PARAMS, [
     { salt: 7n, expiresAt: 0n, minLifetime: 3600n, creationFlags, attributes },
   ]);
-  return encodeFunctionData({ abi: EXECUTE_ABI, functionName: 'execute', args: [[{ operation: 1, operationData }]] });
+  return encodeFunctionData({
+    abi: EXECUTE_ABI,
+    functionName: 'execute',
+    args: [[{ operation: 1, operationData }]],
+  });
 }
 
 function sampleReadingValues() {
@@ -111,7 +122,15 @@ describe('Arkiv schemas', () => {
   it('accept the values built for every entity (the SDK validates types and sizes)', () => {
     const profile = { payload: vectors.lotProfile.payload, sig: vectors.lotProfile.sig };
     const cases: Array<[any, any]> = [
-      [Devices, deviceValues({ certBundle: vectors.cert.bundle, venueIds: ['WH-MUM-01', 'DK-PNQ-02'], label: 'Pocket sensor #1', registeredAt: 1_793_900_000 })],
+      [
+        Devices,
+        deviceValues({
+          certBundle: vectors.cert.bundle,
+          venueIds: ['WH-MUM-01', 'DK-PNQ-02'],
+          label: 'Pocket sensor #1',
+          registeredAt: 1_793_900_000,
+        }),
+      ],
       [Venues, venueValues(venue)],
       [Venues, venueValues({ ...venue, anchor: undefined })],
       [
@@ -175,7 +194,11 @@ describe('execute calldata decoder', () => {
     expect(create!.salt).toBe(7n);
     expect(create!.minLifetime).toBe(3600n);
 
-    expect(create!.attributes.get('arkiv.schema')).toEqual({ type: 'str', indexed: true, value: 'pinky.reading.v1' });
+    expect(create!.attributes.get('arkiv.schema')).toEqual({
+      type: 'str',
+      indexed: true,
+      value: 'pinky.reading.v1',
+    });
     for (const [name, value] of Object.entries(values)) {
       expect(create!.attributes.get(name)?.value, name).toBe(plainValue(value as any));
     }
@@ -222,7 +245,16 @@ describe('execute calldata decoder', () => {
       [Readings, sampleReadingValues(), 1],
       [Checkpoints, sampleCheckpointValues(), 1],
       [Venues, venueValues(venue), 3],
-      [Devices, deviceValues({ certBundle: vectors.cert.bundle, venueIds: ['WH-MUM-01'], label: 'Sensor', registeredAt: 5 }), 3],
+      [
+        Devices,
+        deviceValues({
+          certBundle: vectors.cert.bundle,
+          venueIds: ['WH-MUM-01'],
+          label: 'Sensor',
+          registeredAt: 5,
+        }),
+        3,
+      ],
     ];
     for (const [schema, values, flags] of cases) {
       const ours = encodeCreates([

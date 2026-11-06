@@ -12,7 +12,12 @@ export interface LineTransport {
   close(): Promise<void>;
 }
 
-type Waiting = { command: string; resolve(value: any): void; reject(error: Error): void; timer: NodeJS.Timeout };
+type Waiting = {
+  command: string;
+  resolve(value: any): void;
+  reject(error: Error): void;
+  timer: NodeJS.Timeout;
+};
 
 export class BoardClient {
   readonly #transport: LineTransport;
@@ -93,7 +98,10 @@ export class BoardClient {
         last = error as Error;
       }
     }
-    throw new BoardError('info', `the board did not answer within ${timeoutMs} ms (${last?.message ?? 'no response'})`);
+    throw new BoardError(
+      'info',
+      `the board did not answer within ${timeoutMs} ms (${last?.message ?? 'no response'})`,
+    );
   }
 
   async close(): Promise<void> {

@@ -78,7 +78,11 @@ export type PolicyContext = {
 };
 
 export type Review =
-  | { ok: true; readings: Hex[]; checkpoints: Array<{ id: Hex; decision: string; outcome: string; reason: string }> }
+  | {
+      ok: true;
+      readings: Hex[];
+      checkpoints: Array<{ id: Hex; decision: string; outcome: string; reason: string }>;
+    }
   | { ok: false; reason: string };
 
 const MAX_CREATES = 32;
@@ -125,7 +129,7 @@ export function reviewTransaction(request: SignRequest, context: PolicyContext):
     const gas = BigInt(transaction.gas);
     const gasPrice = BigInt(transaction.gasPrice);
     if (gas > context.maxGas) refuse(`gas limit ${gas} is above the device's cap`);
-    if (gas * gasPrice > context.maxFeeWei) refuse('fee is above the device\'s cap');
+    if (gas * gasPrice > context.maxFeeWei) refuse("fee is above the device's cap");
 
     const decoded = decodeExecute(transaction.data);
     if (decoded.operations.length === 0) refuse('empty batch');
@@ -146,7 +150,8 @@ export function reviewTransaction(request: SignRequest, context: PolicyContext):
     }
     return { ok: true, readings, checkpoints };
   } catch (error) {
-    if (error instanceof Refusal || error instanceof ProtocolError) return { ok: false, reason: error.message };
+    if (error instanceof Refusal || error instanceof ProtocolError)
+      return { ok: false, reason: error.message };
     throw error;
   }
 }
@@ -210,7 +215,8 @@ function reviewCheckpoint(create: DecodedCreate, context: PolicyContext) {
     mine.anchor_att = ['bytes', toHex(concat(fromHex(own.anchor.payload), fromHex(own.anchor.sig)))];
   }
   for (const [name, [type, value]] of Object.entries(mine)) {
-    if (attribute(create, name, type) !== value) refuse(`checkpoint attribute "${name}" does not match the device's`);
+    if (attribute(create, name, type) !== value)
+      refuse(`checkpoint attribute "${name}" does not match the device's`);
   }
   for (const name of create.attributes.keys()) {
     if (name !== 'arkiv.schema' && !(name in mine) && !CHECKPOINT_GATEWAY_COLUMNS.has(name)) {
@@ -229,10 +235,13 @@ function reviewCheckpoint(create: DecodedCreate, context: PolicyContext) {
   }
   const decision = decisionName(attestation.decision);
   if (text(create, 'decision') !== decision) refuse('decision column disagrees with the attestation');
-  if (attribute(create, 'breach', 'bool') !== attestation.breach) refuse('breach column disagrees with the attestation');
-  if (attribute(create, 'decided_at', 'u64') !== BigInt(attestation.decidedAt)) refuse('decided_at disagrees with the attestation');
+  if (attribute(create, 'breach', 'bool') !== attestation.breach)
+    refuse('breach column disagrees with the attestation');
+  if (attribute(create, 'decided_at', 'u64') !== BigInt(attestation.decidedAt))
+    refuse('decided_at disagrees with the attestation');
   const outcome = text(create, 'outcome');
-  if (!OUTCOMES_FOR[decision]!.includes(outcome)) refuse(`outcome ${outcome} is impossible for decision ${decision}`);
+  if (!OUTCOMES_FOR[decision]!.includes(outcome))
+    refuse(`outcome ${outcome} is impossible for decision ${decision}`);
   const reason = text(create, 'reason');
 
   if (attestation.decision === Decision.PENDING) {
@@ -244,14 +253,19 @@ function reviewCheckpoint(create: DecodedCreate, context: PolicyContext) {
     if (requestIdHash(text(create, 'zg_request_id')) !== attestation.requestIdHash) {
       refuse('0G request id does not match the attestation');
     }
-    if (text(create, 'episode_root') !== attestation.episodeRoot) refuse('episode root does not match the attestation');
+    if (text(create, 'episode_root') !== attestation.episodeRoot)
+      refuse('episode root does not match the attestation');
   }
 
   // 3. Honesty about breaches, judged against the device's own readings.
   const window = context.readingsInWindow(checkpoint.firstSeq, checkpoint.lastSeq);
   const ownBreach = window.some((reading) => !reading.inRange);
   if (attestation.decision !== Decision.PENDING && attestation.breach !== ownBreach) {
-    refuse(ownBreach ? 'decision hides an out-of-range reading' : 'decision claims a breach the device did not measure');
+    refuse(
+      ownBreach
+        ? 'decision hides an out-of-range reading'
+        : 'decision claims a breach the device did not measure',
+    );
   }
   if (create.attributes.has('breach_reading')) {
     const packed = fromHex(hexBytes(create, 'breach_reading'));

@@ -3,7 +3,7 @@
 Who this is for, how it would get to them, and where it stands. Nothing here is traction: the
 project was built at a hackathon and has no users.
 
-> **To the team:** the sections marked *to fill in* need facts only you have. Everything else is
+> **To the team:** the sections marked _to fill in_ need facts only you have. Everything else is
 > a draft from what the project does; change whatever does not match your intent.
 
 ## Who has the problem
@@ -28,7 +28,7 @@ properly. Today that confidence comes from paperwork and the reputation of whoev
 
 ## How it reaches them
 
-*To fill in.* Open questions the team should answer before claiming a path to users:
+_To fill in._ Open questions the team should answer before claiming a path to users:
 
 - Which first customer: a single warehouse operator, a coffee importer, a pharma distributor?
 - Who pays — the issuer of the receipt (to sell it at a better price) or the buyer?
@@ -53,4 +53,4 @@ properly. Today that confidence comes from paperwork and the reputation of whoev
 
 ## Team and contact
 
-*To fill in:* who built this, and how to reach you.
+_To fill in:_ who built this, and how to reach you.

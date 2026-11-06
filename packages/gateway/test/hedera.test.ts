@@ -116,12 +116,14 @@ describe('Hedera adapter on the real ATS contracts', () => {
     const deployed = await hedera.deployReceiptToken({ assetId: ASSET, units: 100, unitValueCents: 1800 });
     token = deployed.token;
     const read = { address: token, abi: atsTokenAbi } as const;
-    expect(await hedera.publicClient.readContract({ ...read, functionName: 'name' })).toBe('Warehouse Receipt LOT-42');
+    expect(await hedera.publicClient.readContract({ ...read, functionName: 'name' })).toBe(
+      'Warehouse Receipt LOT-42',
+    );
     expect(await hedera.publicClient.readContract({ ...read, functionName: 'symbol' })).toBe('WRLOT42');
     expect(await hedera.publicClient.readContract({ ...read, functionName: 'decimals' })).toBe(0);
-    expect((await hedera.publicClient.readContract({ ...read, functionName: 'compliance' })).toLowerCase()).toBe(
-      devnet.oracle.toLowerCase(),
-    );
+    expect(
+      (await hedera.publicClient.readContract({ ...read, functionName: 'compliance' })).toLowerCase(),
+    ).toBe(devnet.oracle.toLowerCase());
     expect(await hedera.isTokenAdmin(token, hedera.issuer)).toBe(true);
     expect(await hedera.lot(ASSET)).toBeUndefined();
   }, 60_000);
@@ -144,7 +146,9 @@ describe('Hedera adapter on the real ATS contracts', () => {
     await hedera.onboardInvestor(token, depositor); // idempotent
     await expect(hedera.issue(token, depositor, 100)).rejects.toThrow();
 
-    const applied = await hedera.submitCheckpoint(decided(CheckpointKind.WAREHOUSE_IN, Decision.ACCEPT_CUSTODY));
+    const applied = await hedera.submitCheckpoint(
+      decided(CheckpointKind.WAREHOUSE_IN, Decision.ACCEPT_CUSTODY),
+    );
     expect(applied).toMatchObject({ outcome: Outcome.ACCEPTED, stateAfter: LotState.IN_CUSTODY });
 
     await hedera.issue(token, depositor, 100);
@@ -168,7 +172,14 @@ describe('Hedera adapter on the real ATS contracts', () => {
 
     await hedera.allowlistSpender(token, devnet.market);
     await hedera.onboardInvestor(token, devnet.accounts.buyer.address);
-    await wait(await depositor.writeContract({ address: token, abi: atsTokenAbi, functionName: 'approve', args: [devnet.market, 40n] }));
+    await wait(
+      await depositor.writeContract({
+        address: token,
+        abi: atsTokenAbi,
+        functionName: 'approve',
+        args: [devnet.market, 40n],
+      }),
+    );
     await wait(
       await depositor.writeContract({
         address: devnet.market,
@@ -194,14 +205,28 @@ describe('Hedera adapter on the real ATS contracts', () => {
     await hedera.submitCheckpoint(decided(CheckpointKind.WAREHOUSE_OUT, Decision.ACCEPT_CUSTODY));
     expect((await hedera.lot(ASSET))?.state).toBe(LotState.IN_TRANSIT);
 
-    const applied = await hedera.submitCheckpoint(decided(CheckpointKind.DOCK_HANDOFF, Decision.REJECT, true));
+    const applied = await hedera.submitCheckpoint(
+      decided(CheckpointKind.DOCK_HANDOFF, Decision.REJECT, true),
+    );
     expect(applied).toMatchObject({ outcome: Outcome.FROZEN, stateAfter: LotState.FROZEN });
-    expect(await hedera.holding(token, devnet.accounts.depositor.address)).toEqual({ free: 0n, frozen: 90n, total: 90n });
-    expect(await hedera.holding(token, devnet.accounts.buyer.address)).toEqual({ free: 0n, frozen: 10n, total: 10n });
+    expect(await hedera.holding(token, devnet.accounts.depositor.address)).toEqual({
+      free: 0n,
+      frozen: 90n,
+      total: 90n,
+    });
+    expect(await hedera.holding(token, devnet.accounts.buyer.address)).toEqual({
+      free: 0n,
+      frozen: 10n,
+      total: 10n,
+    });
     expect(await hedera.lot(ASSET)).toMatchObject({ state: LotState.FROZEN, breachOpen: true, lastSeq: seq });
 
     await hedera.release(ASSET, `0x${'ee'.repeat(32)}`, seq);
-    expect(await hedera.lot(ASSET)).toMatchObject({ state: LotState.IN_CUSTODY, breachOpen: false, clearedSeq: seq });
+    expect(await hedera.lot(ASSET)).toMatchObject({
+      state: LotState.IN_CUSTODY,
+      breachOpen: false,
+      clearedSeq: seq,
+    });
     expect((await hedera.holding(token, devnet.accounts.buyer.address)).free).toBe(10n);
   }, 60_000);
 

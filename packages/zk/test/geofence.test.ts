@@ -72,7 +72,9 @@ describe('geofence circuit', () => {
   });
 
   it('does not verify against a different venue box', async () => {
-    expect(await verifyGeofence({ ...statement, box: { ...box, latMax: box.latMax + 1 } }, proof.proof)).toBe(false);
+    expect(await verifyGeofence({ ...statement, box: { ...box, latMax: box.latMax + 1 } }, proof.proof)).toBe(
+      false,
+    );
   });
 
   it('does not verify for a different reading', async () => {
@@ -107,9 +109,9 @@ describe('geofence circuit', () => {
   it('cannot prove for a reading the claimed device did not sign', async () => {
     const strangerSecret = secpGenerateSecret();
     const forged = signReading({ ...verified.reading }, strangerSecret); // same bytes, other signer
-    await expect(
-      proveGeofence(statement, { ...witness, signature: fromHex(forged.sig) }),
-    ).rejects.toThrow(ProtocolError);
+    await expect(proveGeofence(statement, { ...witness, signature: fromHex(forged.sig) })).rejects.toThrow(
+      ProtocolError,
+    );
   });
 
   it('cannot prove a spoofed position even with a self-made commitment for another reading', async () => {
@@ -121,7 +123,10 @@ describe('geofence circuit', () => {
 
   it('cannot prove a reading taken without a GPS fix to be inside any venue', async () => {
     const noFix = noFixOpening(opening.salt);
-    const signed = signReading({ ...verified.reading, gpsCommitment: toHex(gpsCommitment(noFix)) }, TEST_KEYS.device);
+    const signed = signReading(
+      { ...verified.reading, gpsCommitment: toHex(gpsCommitment(noFix)) },
+      TEST_KEYS.device,
+    );
     const blind = verifyReading(signed);
     const blindStatement = { digest: blind.digest, publicKey: blind.publicKey, box };
     const blindWitness = { payload: blind.payload, signature: blind.signature, opening: noFix };

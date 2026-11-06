@@ -59,7 +59,10 @@ let device: Device;
 let runner: DeviceRunner;
 let stopSigning: () => Promise<void>;
 let reader: ReturnType<typeof createPublicClient>;
-const anchors = { origin: new SimulatedAnchor(`0x${'31'.repeat(32)}`), dock: new SimulatedAnchor(`0x${'32'.repeat(32)}`) };
+const anchors = {
+  origin: new SimulatedAnchor(`0x${'31'.repeat(32)}`),
+  dock: new SimulatedAnchor(`0x${'32'.repeat(32)}`),
+};
 let nearby: SimulatedAnchor | null = null;
 
 const admin = async (path: string, body?: unknown) => {
@@ -75,7 +78,10 @@ const admin = async (path: string, body?: unknown) => {
 
 /** Moves the simulated device: position, which anchor is in radio range, and the climate. */
 function place(where: 'origin' | 'road' | 'dock', tempCenti = 450) {
-  const spot = { origin: [19.0761, 72.8778], road: [18.8, 73.3], dock: [18.5205, 73.8568] }[where] as [number, number];
+  const spot = { origin: [19.0761, 72.8778], road: [18.8, 73.3], dock: [18.5205, 73.8568] }[where] as [
+    number,
+    number,
+  ];
   hardware.position.set({ latDeg: spot[0], lonDeg: spot[1] });
   hardware.climate.set(tempCenti, 4500);
   nearby = where === 'road' ? null : anchors[where];
@@ -91,7 +97,8 @@ async function handoff(kind: (typeof CheckpointKind)[keyof typeof CheckpointKind
 }
 
 const chainLot = async () => (await stack.gateway.hedera.lot(ASSET))!;
-const records = async () => latestPerCheckpoint(await fetchCheckpoints(reader, { assetId: ASSET, device: device.address }));
+const records = async () =>
+  latestPerCheckpoint(await fetchCheckpoints(reader, { assetId: ASSET, device: device.address }));
 
 beforeAll(async () => {
   stack = await startLocalStack({ gateway: { retryBaseMs: 300, retryMaxMs: 800 } });
@@ -144,7 +151,11 @@ describe('end to end on the local stack', () => {
     expect((await chainLot()).state).toBe(LotState.REGISTERED);
 
     const lot = await fetchLot(reader, stack.registry, ASSET);
-    expect(lot).toMatchObject({ deviceId: device.address, creator: stack.registry, profileSigner: stack.registry });
+    expect(lot).toMatchObject({
+      deviceId: device.address,
+      creator: stack.registry,
+      profileSigner: stack.registry,
+    });
     expect(lot!.token).toBe((await chainLot()).token);
   });
 
@@ -191,7 +202,11 @@ describe('end to end on the local stack', () => {
       expect(await verifyGeofence(statement, fromHex(proof.proof))).toBe(true);
     }
     const dock = (await fetchVenues(reader, stack.registry)).find((v) => v.venueId === DOCK.venueId)!;
-    const wrongVenue = { digest: fromHex(proofs[0]!.readingDigest), publicKey: walletPublicKey, box: dock.box };
+    const wrongVenue = {
+      digest: fromHex(proofs[0]!.readingDigest),
+      publicKey: walletPublicKey,
+      box: dock.box,
+    };
     expect(await verifyGeofence(wrongVenue, fromHex(proofs[0]!.proof))).toBe(false);
   }, 60_000);
 
@@ -213,9 +228,15 @@ describe('end to end on the local stack', () => {
 
     // Replay: download the episode by its root, decrypt with the lot's view key, re-verify.
     const { viewKey } = await admin(`/lots/${ASSET}/view-key`);
-    const ciphertext = new Uint8Array(await (await fetch(`${stack.url}/v1/episodes/${record!.episodeRoot}`)).arrayBuffer());
+    const ciphertext = new Uint8Array(
+      await (await fetch(`${stack.url}/v1/episodes/${record!.episodeRoot}`)).arrayBuffer(),
+    );
     const episode = openEpisode(ciphertext, viewKey);
-    expect(episode.decision).toMatchObject({ requestId: record!.zgRequestId, decision: 'ACCEPT_CUSTODY', source: 'dev-mock' });
+    expect(episode.decision).toMatchObject({
+      requestId: record!.zgRequestId,
+      decision: 'ACCEPT_CUSTODY',
+      source: 'dev-mock',
+    });
     expect(toHex(checkpointDigest(fromHex(episode.checkpoint.payload)))).toBe(record!.checkpointId);
     verifyCheckpoint(episode.checkpoint);
     const raw = episode.readings.map((r) => verifyReading(r).reading);
@@ -269,7 +290,9 @@ describe('end to end on the local stack', () => {
 
   it('once 0G answers, rejects the handoff and freezes the receipt on the signed breach', async () => {
     stack.zg.setMode('up');
-    const pending = Object.values(stack.gateway.store.checkpoints).find((c) => c.stage === 'AWAITING_DECISION')!;
+    const pending = Object.values(stack.gateway.store.checkpoints).find(
+      (c) => c.stage === 'AWAITING_DECISION',
+    )!;
     const decided = await runner.awaitDecision(pending.id, { timeoutMs: 60_000 });
     await stack.gateway.idle();
 
@@ -285,29 +308,47 @@ describe('end to end on the local stack', () => {
 
     // The decided record discloses the reading that proves the breach.
     const record = (await records()).find((r) => r.checkpointId === pending.id)!;
-    expect(record).toMatchObject({ decision: 'REJECT', outcome: 'FROZEN', breach: true, kind: 'DOCK_HANDOFF' });
+    expect(record).toMatchObject({
+      decision: 'REJECT',
+      outcome: 'FROZEN',
+      breach: true,
+      kind: 'DOCK_HANDOFF',
+    });
     const evidence = fromHex(record.breachReading!);
-    const breach = verifyReading({ payload: toHex(evidence.subarray(0, 144)), sig: toHex(evidence.subarray(144)) });
+    const breach = verifyReading({
+      payload: toHex(evidence.subarray(0, 144)),
+      sig: toHex(evidence.subarray(144)),
+    });
     expect(breach.reading).toMatchObject({ tempCenti: 1260, device: device.address });
 
     // ...and the plan's query finds it: readings for this lot where in_range = false.
-    const outOfRange = await fetchReadings(reader, { assetId: ASSET, device: device.address, onlyOutOfRange: true });
+    const outOfRange = await fetchReadings(reader, {
+      assetId: ASSET,
+      device: device.address,
+      onlyOutOfRange: true,
+    });
     expect(outOfRange.map((r) => r.digest)).toEqual([toHex(breach.digest)]);
 
     // The episode log keeps the outage on record.
     const { viewKey } = await admin(`/lots/${ASSET}/view-key`);
-    const ciphertext = new Uint8Array(await (await fetch(`${stack.url}/v1/episodes/${record.episodeRoot}`)).arrayBuffer());
+    const ciphertext = new Uint8Array(
+      await (await fetch(`${stack.url}/v1/episodes/${record.episodeRoot}`)).arrayBuffer(),
+    );
     const episode = openEpisode(ciphertext, viewKey);
     expect(episode.failedAttempts.length).toBeGreaterThanOrEqual(2);
     expect(episode.policy).toEqual({ stateBefore: 'IN_TRANSIT', breach: true, outcome: 'FROZEN' });
-    expect(episode.readings.map((r) => decodeReading(fromHex(r.payload)).tempCenti)).toEqual([520, 1260, 610]);
+    expect(episode.readings.map((r) => decodeReading(fromHex(r.payload)).tempCenti)).toEqual([
+      520, 1260, 610,
+    ]);
   }, 120_000);
 
   it('unfreezes after inspection and completes delivery', async () => {
     await admin(`/lots/${ASSET}/release`, { inspectionRef: `0x${'ee'.repeat(32)}` });
     expect(await chainLot()).toMatchObject({ state: LotState.IN_CUSTODY, breachOpen: false });
     const { token } = await chainLot();
-    expect((await stack.gateway.hedera.holding(token, stack.hedera.accounts.depositor.address)).free).toBe(100n);
+    expect((await stack.gateway.hedera.holding(token, stack.hedera.accounts.depositor.address)).free).toBe(
+      100n,
+    );
 
     place('dock', 480);
     await runner.reading();

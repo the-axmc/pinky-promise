@@ -12,8 +12,8 @@
   "scripts": {
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present --workspace-concurrency=1 test",
-    "format": "prettier --write \"**/*.{ts,tsx,json,md,sol}\" --ignore-path .gitignore",
-    "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\" --ignore-path .gitignore",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\" --ignore-path .gitignore --ignore-path .prettierignore",
+    "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\" --ignore-path .gitignore --ignore-path .prettierignore",
     "device": "pnpm --silent --filter @pinky/device cli",
     "demo": "pnpm --silent --filter @pinky/gateway demo",
     "gateway": "pnpm --silent --filter @pinky/gateway start",

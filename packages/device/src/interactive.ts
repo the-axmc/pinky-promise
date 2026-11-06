@@ -41,7 +41,10 @@ export async function runInteractive(options: InteractiveOptions): Promise<void>
   let queue: Promise<unknown> = Promise.resolve();
   const enqueue = (label: string, job: () => Promise<void> | void) => {
     queue = queue.then(job).catch((error) => {
-      const detail = error instanceof LinkError ? `${error.message} ${JSON.stringify(error.detail)}` : (error as Error).message;
+      const detail =
+        error instanceof LinkError
+          ? `${error.message} ${JSON.stringify(error.detail)}`
+          : (error as Error).message;
       say(`${label} failed: ${detail}`);
     });
     return queue;
@@ -80,12 +83,18 @@ export async function runInteractive(options: InteractiveOptions): Promise<void>
       // Keep watching without holding up further readings.
       void (async () => {
         while (!stopping) {
-          const now = await runner.awaitDecision(sent.checkpointId, { timeoutMs: 20_000 }).catch(() => undefined);
+          const now = await runner
+            .awaitDecision(sent.checkpointId, { timeoutMs: 20_000 })
+            .catch(() => undefined);
           if (!now) continue;
           if (now.status !== 'PENDING') {
-            return say(`checkpoint ${short} → ${now.status}${now.decision ? ` (${now.decision})` : ''}${now.reason ? `: ${now.reason}` : ''}`);
+            return say(
+              `checkpoint ${short} → ${now.status}${now.decision ? ` (${now.decision})` : ''}${now.reason ? `: ${now.reason}` : ''}`,
+            );
           }
-          say(`checkpoint ${short} still PENDING — no decision yet, nothing is accepted${now.reason ? ` (${now.reason})` : ''}`);
+          say(
+            `checkpoint ${short} still PENDING — no decision yet, nothing is accepted${now.reason ? ` (${now.reason})` : ''}`,
+          );
         }
       })();
     });
@@ -131,13 +140,25 @@ export async function runInteractive(options: InteractiveOptions): Promise<void>
       if (extra[pressed]) return void enqueue(extra[pressed]!.help, () => extra[pressed]!.run());
       if (pressed === '+' || pressed === '-') {
         simTemp += pressed === '+' ? 50 : -50;
-        say(steer.climate(simTemp, 4500) ? `simulated temperature ${(simTemp / 100).toFixed(1)} °C` : 'the SHT31 is real — warm or cool the sensor itself');
+        say(
+          steer.climate(simTemp, 4500)
+            ? `simulated temperature ${(simTemp / 100).toFixed(1)} °C`
+            : 'the SHT31 is real — warm or cool the sensor itself',
+        );
       } else if (pressed === 'b') {
         simSeal = simSeal === 'intact' ? 'broken' : 'intact';
-        say(steer.seal(simSeal) ? `simulated seal is now ${simSeal}` : 'the camera is real — point it at the seal you want it to see');
+        say(
+          steer.seal(simSeal)
+            ? `simulated seal is now ${simSeal}`
+            : 'the camera is real — point it at the seal you want it to see',
+        );
       } else if (pressed === 'g') {
         simFix = !simFix;
-        say(steer.position(simFix ? home : null) ? `simulated GPS ${simFix ? 'has a fix' : 'lost its fix'}` : 'the GPS is real — it reports what it sees');
+        say(
+          steer.position(simFix ? home : null)
+            ? `simulated GPS ${simFix ? 'has a fix' : 'lost its fix'}`
+            : 'the GPS is real — it reports what it sees',
+        );
       }
     });
   } else {

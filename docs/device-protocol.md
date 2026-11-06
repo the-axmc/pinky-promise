@@ -22,17 +22,17 @@ firmware port has to meet; the reference implementation is `packages/protocol` (
 
 ## PPR1 — reading (144 bytes)
 
-| Offset | Length | Field | Notes |
-| --- | --- | --- | --- |
-| 0 | 4 | magic | `PPR1` |
-| 4 | 20 | device | the device wallet's address |
-| 24 | 32 | asset_id | the lot |
-| 56 | 4 | temp_centi | int32 |
-| 60 | 4 | rh_centi | uint32 |
-| 64 | 32 | gps_commitment | see below |
-| 96 | 8 | ts | uint64 |
-| 104 | 8 | seq | uint64, never reused |
-| 112 | 32 | blockhash | hash of a recent Arkiv block: the reading cannot predate it |
+| Offset | Length | Field          | Notes                                                       |
+| ------ | ------ | -------------- | ----------------------------------------------------------- |
+| 0      | 4      | magic          | `PPR1`                                                      |
+| 4      | 20     | device         | the device wallet's address                                 |
+| 24     | 32     | asset_id       | the lot                                                     |
+| 56     | 4      | temp_centi     | int32                                                       |
+| 60     | 4      | rh_centi       | uint32                                                      |
+| 64     | 32     | gps_commitment | see below                                                   |
+| 96     | 8      | ts             | uint64                                                      |
+| 104    | 8      | seq            | uint64, never reused                                        |
+| 112    | 32     | blockhash      | hash of a recent Arkiv block: the reading cannot predate it |
 
 `digest = SHA-256(payload)`; the device signs the digest.
 
@@ -59,21 +59,21 @@ A venue's geofence is a box in the same units, bound to its id:
 Taken at a custody handoff. It commits to the readings since the previous checkpoint, to the
 seal evidence and to the venue anchor's co-signature.
 
-| Offset | Length | Field | Notes |
-| --- | --- | --- | --- |
-| 0 | 4 | magic | `PPC1` |
-| 4 | 20 | device | |
-| 24 | 32 | asset_id | |
-| 56 | 1 | kind | 1 WAREHOUSE_IN · 2 WAREHOUSE_OUT · 3 DOCK_HANDOFF · 4 FINAL_DELIVERY |
-| 57 | 8 | ts | |
-| 65 | 8 | seq | shares the reading counter |
-| 73 | 8 | first_seq | first reading in the window |
-| 81 | 8 | last_seq | last reading in the window |
-| 89 | 4 | reading_count | uint32 |
-| 93 | 32 | readings_root | SHA-256 of the window's reading digests, concatenated in order |
-| 125 | 32 | seal_hash | SHA-256 of the seal evidence record, as sent |
-| 157 | 32 | anchor_digest | SHA-256 of the PPA1 payload, or 32 zero bytes without an anchor |
-| 189 | 32 | blockhash | recent Arkiv block, also the anchor's nonce |
+| Offset | Length | Field         | Notes                                                                |
+| ------ | ------ | ------------- | -------------------------------------------------------------------- |
+| 0      | 4      | magic         | `PPC1`                                                               |
+| 4      | 20     | device        |                                                                      |
+| 24     | 32     | asset_id      |                                                                      |
+| 56     | 1      | kind          | 1 WAREHOUSE_IN · 2 WAREHOUSE_OUT · 3 DOCK_HANDOFF · 4 FINAL_DELIVERY |
+| 57     | 8      | ts            |                                                                      |
+| 65     | 8      | seq           | shares the reading counter                                           |
+| 73     | 8      | first_seq     | first reading in the window                                          |
+| 81     | 8      | last_seq      | last reading in the window                                           |
+| 89     | 4      | reading_count | uint32                                                               |
+| 93     | 32     | readings_root | SHA-256 of the window's reading digests, concatenated in order       |
+| 125    | 32     | seal_hash     | SHA-256 of the seal evidence record, as sent                         |
+| 157    | 32     | anchor_digest | SHA-256 of the PPA1 payload, or 32 zero bytes without an anchor      |
+| 189    | 32     | blockhash     | recent Arkiv block, also the anchor's nonce                          |
 
 The checkpoint id is `SHA-256(payload)`.
 
@@ -83,10 +83,12 @@ A small UTF-8 JSON record, because what a device can observe depends on its hard
 the three, at least one:
 
 ```json
-{ "v": 1,
-  "photo":     { "sha256": "0x…", "mime": "image/jpeg", "source": "device-camera" },
-  "nfc":       { "uid": "0x04a1b2c3d4e5f6", "tagType": "iso14443a", "tamper": "unknown" },
-  "enclosure": { "closed": true, "openCount": 0 } }
+{
+  "v": 1,
+  "photo": { "sha256": "0x…", "mime": "image/jpeg", "source": "device-camera" },
+  "nfc": { "uid": "0x04a1b2c3d4e5f6", "tagType": "iso14443a", "tamper": "unknown" },
+  "enclosure": { "closed": true, "openCount": 0 }
+}
 ```
 
 `seal_hash` is the hash of the exact bytes sent, so there is no canonical form to agree on. The
@@ -96,42 +98,42 @@ photo travels next to the record and must hash to `photo.sha256`. `source` is on
 
 ## PPA1 — venue anchor attestation (96 bytes)
 
-| Offset | Length | Field |
-| --- | --- | --- |
-| 0 | 4 | magic `PPA1` |
-| 4 | 32 | venue_id |
-| 36 | 20 | device — the wallet that asked |
-| 56 | 32 | blockhash — the nonce, the same one the checkpoint carries |
-| 88 | 8 | counter — the anchor's own, never reused |
+| Offset | Length | Field                                                      |
+| ------ | ------ | ---------------------------------------------------------- |
+| 0      | 4      | magic `PPA1`                                               |
+| 4      | 32     | venue_id                                                   |
+| 36     | 20     | device — the wallet that asked                             |
+| 56     | 32     | blockhash — the nonce, the same one the checkpoint carries |
+| 88     | 8      | counter — the anchor's own, never reused                   |
 
 Signed by the anchor's secp256k1 key over `SHA-256(payload)`. Using a recent block hash as the
 nonce makes the attestation fresh without the anchor needing a clock.
 
 ## PPD1 — device certificate (105 bytes, signed twice)
 
-| Offset | Length | Field |
-| --- | --- | --- |
-| 0 | 4 | magic `PPD1` |
-| 4 | 20 | device — wallet address |
-| 24 | 64 | hw_pubkey — the ATECC608B's P-256 key, `x ‖ y` |
-| 88 | 9 | hw_serial — the chip's serial number |
-| 97 | 8 | issued_at |
+| Offset | Length | Field                                          |
+| ------ | ------ | ---------------------------------------------- |
+| 0      | 4      | magic `PPD1`                                   |
+| 4      | 20     | device — wallet address                        |
+| 24     | 64     | hw_pubkey — the ATECC608B's P-256 key, `x ‖ y` |
+| 88     | 9      | hw_serial — the chip's serial number           |
+| 97     | 8      | issued_at                                      |
 
 Bundle on the wire: `payload ‖ hw_sig (64) ‖ wallet_sig (65)` = 234 bytes. The chip signs once,
 at enrolment: "this chip vouches for this wallet". The wallet countersigns the same digest.
 
 ## PPL1 — lot profile (80 bytes, signed by the registry)
 
-| Offset | Length | Field |
-| --- | --- | --- |
-| 0 | 4 | magic `PPL1` |
-| 4 | 32 | asset_id |
-| 36 | 20 | device |
-| 56 | 4 | temp_min_centi (int32) |
-| 60 | 4 | temp_max_centi (int32) |
-| 64 | 4 | rh_min_centi (uint32) |
-| 68 | 4 | rh_max_centi (uint32) |
-| 72 | 8 | valid_until |
+| Offset | Length | Field                  |
+| ------ | ------ | ---------------------- |
+| 0      | 4      | magic `PPL1`           |
+| 4      | 32     | asset_id               |
+| 36     | 20     | device                 |
+| 56     | 4      | temp_min_centi (int32) |
+| 60     | 4      | temp_max_centi (int32) |
+| 64     | 4      | rh_min_centi (uint32)  |
+| 68     | 4      | rh_max_centi (uint32)  |
+| 72     | 8      | valid_until            |
 
 The device adopts a profile only if the registry it was provisioned with signed it, it names
 this device and it has not expired. A gateway cannot widen the limits.
@@ -141,28 +143,28 @@ this device and it has not expired. A gateway cannot widen the limits.
 Not produced by the device, but the device checks it before publishing a decision under its own
 name.
 
-| Offset | Length | Field |
-| --- | --- | --- |
-| 0 | 4 | magic `PPX1` |
-| 4 | 32 | checkpoint_digest |
-| 36 | 1 | decision — 0 PENDING · 1 ACCEPT_CUSTODY · 2 REJECT · 3 ESCALATE |
-| 37 | 1 | breach — 1 if a bundled reading was out of range |
-| 38 | 32 | request_id_hash — SHA-256 of the 0G request id |
-| 70 | 32 | episode_root — 0G Storage root of the episode log |
-| 102 | 8 | decided_at |
+| Offset | Length | Field                                                           |
+| ------ | ------ | --------------------------------------------------------------- |
+| 0      | 4      | magic `PPX1`                                                    |
+| 4      | 32     | checkpoint_digest                                               |
+| 36     | 1      | decision — 0 PENDING · 1 ACCEPT_CUSTODY · 2 REJECT · 3 ESCALATE |
+| 37     | 1      | breach — 1 if a bundled reading was out of range                |
+| 38     | 32     | request_id_hash — SHA-256 of the 0G request id                  |
+| 70     | 32     | episode_root — 0G Storage root of the episode log               |
+| 102    | 8      | decided_at                                                      |
 
 ## Device ⇄ gateway
 
 The device always initiates. JSON over HTTP today; binary fields are `0x` hex.
 
-| Call | Purpose |
-| --- | --- |
-| `GET /v1/device/context?device=0x…` | a fresh anchor block, and the lot profile once assigned |
-| `POST /v1/device/readings` | `{ payload, sig, opening? }` |
-| `POST /v1/device/checkpoints` | `{ payload, sig, seal, photo?, anchor? }` — answers 409 with `missing: [seq…]` if it lacks readings of the window; the device resends them |
-| `GET /v1/device/checkpoints/:id?device=…` | `PENDING` until a decision exists |
-| `GET /v1/device/sign-requests?device=…` | Arkiv transactions waiting for the device's signature |
-| `POST /v1/device/signatures?device=…` | signatures, or refusals with a reason |
+| Call                                      | Purpose                                                                                                                                    |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /v1/device/context?device=0x…`       | a fresh anchor block, and the lot profile once assigned                                                                                    |
+| `POST /v1/device/readings`                | `{ payload, sig, opening? }`                                                                                                               |
+| `POST /v1/device/checkpoints`             | `{ payload, sig, seal, photo?, anchor? }` — answers 409 with `missing: [seq…]` if it lacks readings of the window; the device resends them |
+| `GET /v1/device/checkpoints/:id?device=…` | `PENDING` until a decision exists                                                                                                          |
+| `GET /v1/device/sign-requests?device=…`   | Arkiv transactions waiting for the device's signature                                                                                      |
+| `POST /v1/device/signatures?device=…`     | signatures, or refusals with a reason                                                                                                      |
 
 `PENDING` means not accepted. A device shows it as such and never treats it as a yes.
 

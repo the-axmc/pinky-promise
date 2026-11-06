@@ -33,7 +33,14 @@ import {
   encodeCreates,
   readingValues,
 } from '@pinky/protocol/arkiv';
-import { encodeAbiParameters, encodeFunctionData, keccak256, parseAbi, parseAbiParameters, serializeTransaction } from 'viem';
+import {
+  encodeAbiParameters,
+  encodeFunctionData,
+  keccak256,
+  parseAbi,
+  parseAbiParameters,
+  serializeTransaction,
+} from 'viem';
 import {
   Device,
   MemoryStorage,
@@ -114,16 +121,22 @@ describe('reassignment', () => {
     await device.takeReading(anchorBlock);
     device.setProfile(profileFor(device.address, { assetId: 'LOT-43' }));
     // The two readings belong to LOT-42; LOT-43 has none yet.
-    await expect(device.takeCheckpoint(CheckpointKind.WAREHOUSE_IN, anchorBlock)).rejects.toThrow(/at least one reading/);
+    await expect(device.takeCheckpoint(CheckpointKind.WAREHOUSE_IN, anchorBlock)).rejects.toThrow(
+      /at least one reading/,
+    );
     await device.takeReading(anchorBlock);
-    const { checkpoint } = verifyCheckpoint(await device.takeCheckpoint(CheckpointKind.WAREHOUSE_IN, anchorBlock));
+    const { checkpoint } = verifyCheckpoint(
+      await device.takeCheckpoint(CheckpointKind.WAREHOUSE_IN, anchorBlock),
+    );
     expect(checkpoint).toMatchObject({ assetId: 'LOT-43', firstSeq: 3, lastSeq: 3, readingCount: 1 });
   });
 
   it('keeps the window when the same lot is confirmed again', async () => {
     await device.takeReading(anchorBlock);
     device.setProfile(profileFor(device.address, { tempMaxCenti: 900 }));
-    const { checkpoint } = verifyCheckpoint(await device.takeCheckpoint(CheckpointKind.WAREHOUSE_IN, anchorBlock));
+    const { checkpoint } = verifyCheckpoint(
+      await device.takeCheckpoint(CheckpointKind.WAREHOUSE_IN, anchorBlock),
+    );
     expect(checkpoint).toMatchObject({ assetId: 'LOT-42', firstSeq: 1, readingCount: 1 });
   });
 });
@@ -142,7 +155,13 @@ describe('readings', () => {
     });
     const opening = request.opening!;
     expect(reading.gpsCommitment).toBe(
-      toHex(gpsCommitment({ latUnits: opening.latUnits, lonUnits: opening.lonUnits, salt: fromHex(opening.salt) })),
+      toHex(
+        gpsCommitment({
+          latUnits: opening.latUnits,
+          lonUnits: opening.lonUnits,
+          salt: fromHex(opening.salt),
+        }),
+      ),
     );
   });
 
@@ -186,12 +205,16 @@ describe('checkpoints', () => {
     expect(evidence.photo?.sha256).toBe(toHex(sha256(Buffer.from(first.photo!.data, 'base64'))));
 
     await device.takeReading(anchorBlock);
-    const second = decodeCheckpoint(fromHex((await device.takeCheckpoint(CheckpointKind.WAREHOUSE_OUT, anchorBlock)).payload));
+    const second = decodeCheckpoint(
+      fromHex((await device.takeCheckpoint(CheckpointKind.WAREHOUSE_OUT, anchorBlock)).payload),
+    );
     expect(second).toMatchObject({ seq: 5, firstSeq: 4, lastSeq: 4, readingCount: 1 });
   });
 
   it('needs at least one new reading', async () => {
-    await expect(device.takeCheckpoint(CheckpointKind.WAREHOUSE_IN, anchorBlock)).rejects.toThrow(/at least one reading/);
+    await expect(device.takeCheckpoint(CheckpointKind.WAREHOUSE_IN, anchorBlock)).rejects.toThrow(
+      /at least one reading/,
+    );
   });
 
   it('carries the venue anchor co-signature when an anchor is in range', async () => {
@@ -205,7 +228,11 @@ describe('checkpoints', () => {
     const withAnchor = await device.takeCheckpoint(CheckpointKind.WAREHOUSE_OUT, anchorBlock);
     const attestation = verifyAnchorAttestation(withAnchor.anchor!);
     expect(attestation.signer).toBe(anchor.address);
-    expect(attestation.attestation).toMatchObject({ venueId: 'WH-MUM-01', device: device.address, blockhash: anchorBlock.blockHash });
+    expect(attestation.attestation).toMatchObject({
+      venueId: 'WH-MUM-01',
+      device: device.address,
+      blockhash: anchorBlock.blockHash,
+    });
     expect(decodeCheckpoint(fromHex(withAnchor.payload)).anchorDigest).toBe(toHex(attestation.digest));
   });
 
@@ -242,7 +269,11 @@ function txFor(creates: CreateSpec[], overrides: Partial<SignRequest['transactio
   };
 }
 
-function readingCreate(request: ReadingRequest, overrides: Record<string, unknown> = {}, spec: Partial<CreateSpec> = {}): CreateSpec {
+function readingCreate(
+  request: ReadingRequest,
+  overrides: Record<string, unknown> = {},
+  spec: Partial<CreateSpec> = {},
+): CreateSpec {
   const { reading, digest } = verifyReading(request);
   const values = readingValues({
     reading,
@@ -278,13 +309,19 @@ describe('signing policy: readings', () => {
       value: 0n,
       data: request.transaction.data,
     });
-    const sig = concat(fromHex(result.signature.r), fromHex(result.signature.s), Uint8Array.of(27 + result.signature.yParity));
+    const sig = concat(
+      fromHex(result.signature.r),
+      fromHex(result.signature.s),
+      Uint8Array.of(27 + result.signature.yParity),
+    );
     expect(secpRecover(fromHex(keccak256(unsigned)), sig).address).toBe(device.address);
   });
 
   it('signs a batch of several of its readings', async () => {
     const second = await device.takeReading(anchorBlock);
-    const result = await device.sign(txFor([readingCreate(reading), readingCreate(second, {}, { salt: 2n })]));
+    const result = await device.sign(
+      txFor([readingCreate(reading), readingCreate(second, {}, { salt: 2n })]),
+    );
     expect(result).toHaveProperty('signature');
   });
 
@@ -295,11 +332,19 @@ describe('signing policy: readings', () => {
     ['an excessive fee', (r) => txFor([readingCreate(r)], { gasPrice: '1000000000000000' }), /fee/],
     ['an excessive gas limit', (r) => txFor([readingCreate(r)], { gas: '99000000' }), /gas limit/],
     ['a mutable entity', (r) => txFor([readingCreate(r, {}, { readonly: false })]), /readonly/],
-    ['an extendable entity', (r) => txFor([readingCreate(r, {}, { permissionlessExtension: true })]), /readonly/],
+    [
+      'an extendable entity',
+      (r) => txFor([readingCreate(r, {}, { permissionlessExtension: true })]),
+      /readonly/,
+    ],
     ['an entity without expiry', (r) => txFor([readingCreate(r, {}, { minLifetime: 0n })]), /expiry/],
     ['a flipped in-range flag', (r) => txFor([readingCreate(r, { inRange: false })]), /in_range/],
     ['a different anchor block', (r) => txFor([readingCreate(r, { anchorBlock: 7 })]), /anchor_block/],
-    ['a reading it never took', (r) => txFor([readingCreate(r, { digest: `0x${'00'.repeat(32)}` })]), /not produced by this device/],
+    [
+      'a reading it never took',
+      (r) => txFor([readingCreate(r, { digest: `0x${'00'.repeat(32)}` })]),
+      /not produced by this device/,
+    ],
     ['a malformed venue hash', (r) => txFor([readingCreate(r, { venueHash: '0x1234' })]), /venue_hash/],
   ];
   for (const [name, build, reason] of refusals) {
@@ -316,7 +361,9 @@ describe('signing policy: readings', () => {
 
     const other = readingCreate(reading);
     other.schema = { tag: { value: 'someone.else.v1' }, columns: Readings.columns };
-    expect(await device.sign(txFor([other]))).toMatchObject({ refused: expect.stringMatching(/unexpected entity type/) });
+    expect(await device.sign(txFor([other]))).toMatchObject({
+      refused: expect.stringMatching(/unexpected entity type/),
+    });
   });
 
   it('refuses anything that is not a create: it will never sign away ownership', async () => {
@@ -324,12 +371,18 @@ describe('signing policy: readings', () => {
       { entityKey: `0x${'11'.repeat(32)}`, newOwner: '0x000000000000000000000000000000000000dEaD' },
     ]);
     const data = encodeFunctionData({
-      abi: parseAbi(['function execute((uint8 operation, bytes operationData)[] ops) external returns (bytes32[] keys)']),
+      abi: parseAbi([
+        'function execute((uint8 operation, bytes operationData)[] ops) external returns (bytes32[] keys)',
+      ]),
       functionName: 'execute',
       args: [[{ operation: 4, operationData: transfer }]],
     });
-    expect(await device.sign(txFor([], { data }))).toMatchObject({ refused: expect.stringMatching(/other than create/) });
-    expect(await device.sign(txFor([], { data: '0xdeadbeef' }))).toMatchObject({ refused: expect.stringMatching(/execute/) });
+    expect(await device.sign(txFor([], { data }))).toMatchObject({
+      refused: expect.stringMatching(/other than create/),
+    });
+    expect(await device.sign(txFor([], { data: '0xdeadbeef' }))).toMatchObject({
+      refused: expect.stringMatching(/execute/),
+    });
   });
 });
 
@@ -364,7 +417,12 @@ describe('signing policy: checkpoints', () => {
       decidedAt: NOW + 100,
     };
     const signed = signDecisionAttestation(attestation, options.signer ?? attestorSecret);
-    const defaultOutcome = { 0: 'PENDING', 1: 'ACCEPTED', 2: options.breach ? 'FROZEN' : 'REFUSED', 3: 'ESCALATED' }[decision];
+    const defaultOutcome = {
+      0: 'PENDING',
+      1: 'ACCEPTED',
+      2: options.breach ? 'FROZEN' : 'REFUSED',
+      3: 'ESCALATED',
+    }[decision];
     const values = checkpointValues({
       checkpoint: verified.checkpoint,
       checkpointId: id,
@@ -413,7 +471,9 @@ describe('signing policy: checkpoints', () => {
   });
 
   it('refuses a decision made for another checkpoint', async () => {
-    const result = await submit(checkpointCreate(Decision.ACCEPT_CUSTODY, { forCheckpoint: `0x${'aa'.repeat(32)}` }));
+    const result = await submit(
+      checkpointCreate(Decision.ACCEPT_CUSTODY, { forCheckpoint: `0x${'aa'.repeat(32)}` }),
+    );
     expect(result).toMatchObject({ refused: expect.stringMatching(/another checkpoint/) });
   });
 
@@ -421,7 +481,9 @@ describe('signing policy: checkpoints', () => {
     expect(await submit(checkpointCreate(Decision.ACCEPT_CUSTODY, { outcome: 'FROZEN' }))).toMatchObject({
       refused: expect.stringMatching(/impossible/),
     });
-    expect(await submit(checkpointCreate(Decision.REJECT, { attestedRequestId: 'another-request' }))).toMatchObject({
+    expect(
+      await submit(checkpointCreate(Decision.REJECT, { attestedRequestId: 'another-request' })),
+    ).toMatchObject({
       refused: expect.stringMatching(/request id/),
     });
   });
@@ -467,7 +529,9 @@ describe('signing policy: checkpoints', () => {
   it('refuses a checkpoint it never made', async () => {
     const create = checkpointCreate(Decision.PENDING);
     (create.values as any).checkpoint_id = { type: 'str', value: `0x${'00'.repeat(32)}` };
-    expect(await submit(create)).toMatchObject({ refused: expect.stringMatching(/not produced by this device/) });
+    expect(await submit(create)).toMatchObject({
+      refused: expect.stringMatching(/not produced by this device/),
+    });
   });
 
   it('exposes a typed error for malformed input rather than crashing', () => {

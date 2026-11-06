@@ -42,7 +42,8 @@ export type CheckpointRequest = {
 };
 
 /** What the device shows. PENDING means "not accepted": 0G has not decided (yet). */
-export type CheckpointStatus = 'PENDING' | 'ACCEPTED' | 'REFUSED' | 'FROZEN' | 'ESCALATED' | 'BLOCKED_BY_BREACH';
+export type CheckpointStatus =
+  'PENDING' | 'ACCEPTED' | 'REFUSED' | 'FROZEN' | 'ESCALATED' | 'BLOCKED_BY_BREACH';
 
 export type CheckpointResponse = {
   checkpointId: Hex;
@@ -76,5 +77,4 @@ export type SignRequest = {
 export type TransactionSignature = { r: Hex; s: Hex; yParity: 0 | 1 };
 
 export type SignatureSubmission =
-  | { id: string; signature: TransactionSignature }
-  | { id: string; refused: string };
+  { id: string; signature: TransactionSignature } | { id: string; refused: string };

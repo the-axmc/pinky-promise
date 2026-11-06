@@ -63,7 +63,8 @@ const U256_MAX = 2n ** 256n - 1n;
 const INT256_MAX = 2n ** 255n - 1n;
 const INT256_MIN = -(2n ** 255n);
 const DECIMAL_RE = /^([+-]?)(\d+)(?:\.(\d+))?$/;
-const HEX_NEEDS_TYPE = 'a hex literal must carry its type — write addr(0x…), key(0x…), bytes32(0x…) or u256(0x…)';
+const HEX_NEEDS_TYPE =
+  'a hex literal must carry its type — write addr(0x…), key(0x…), bytes32(0x…) or u256(0x…)';
 
 /** `key` and `bytes32` are both a 32-byte value and the node compares them as one type. */
 export function canonicalType(tag: TypeTag): TypeTag {
@@ -91,7 +92,11 @@ class Parser {
       where = { kind: 'all' };
       const after = this.peek();
       if (after.kind !== 'end' && !this.isKeyword('order')) {
-        throw queryError(PARSE, '* matches every entity and cannot be combined with other predicates', after.pos);
+        throw queryError(
+          PARSE,
+          '* matches every entity and cannot be combined with other predicates',
+          after.pos,
+        );
       }
     } else {
       where = this.parseOr();
@@ -211,7 +216,11 @@ class Parser {
 
     if (token.kind === 'end') throw queryError(PARSE, 'expected a predicate', token.pos);
     if (token.kind === 'symbol' && token.text === '*') {
-      throw queryError(PARSE, '* matches every entity and cannot be combined with other predicates', token.pos);
+      throw queryError(
+        PARSE,
+        '* matches every entity and cannot be combined with other predicates',
+        token.pos,
+      );
     }
     // Anything else here has to be the attribute a condition is about.
 
@@ -251,7 +260,11 @@ class Parser {
 
     if (operator.kind === 'symbol' && operator.text === '!=') throw notEqual(operator.pos);
     if (operator.kind !== 'symbol' || !COMPARISONS.has(operator.text)) {
-      throw queryError(PARSE, 'expected a comparison operator (= < <= > >= BETWEEN STARTSWITH)', operator.pos);
+      throw queryError(
+        PARSE,
+        'expected a comparison operator (= < <= > >= BETWEEN STARTSWITH)',
+        operator.pos,
+      );
     }
     const valueToken = this.peek();
     const value = this.parseValue();
@@ -277,7 +290,8 @@ class Parser {
         token.pos,
       );
     }
-    if (!NAME_RE.test(name) || name.length > 32) throw queryError(PARSE, 'expected an attribute name', token.pos);
+    if (!NAME_RE.test(name) || name.length > 32)
+      throw queryError(PARSE, 'expected an attribute name', token.pos);
     return name;
   }
 
@@ -286,7 +300,11 @@ class Parser {
     const text = token.kind === 'word' ? token.text : token.kind === 'typed' ? token.tag : '';
     const tag = text.toLowerCase();
     if (!QUERY_TYPE_TAGS.has(tag)) {
-      throw queryError(TYPE, `${text || 'that'} is not a type tag — one of ${TYPE_TAG_LIST.join(' ')}`, token.pos);
+      throw queryError(
+        TYPE,
+        `${text || 'that'} is not a type tag — one of ${TYPE_TAG_LIST.join(' ')}`,
+        token.pos,
+      );
     }
     return tag as TypeTag;
   }
@@ -299,7 +317,11 @@ class Parser {
       case 'word': {
         const word = token.text.toLowerCase();
         if (word === 'true' || word === 'false') return { type: 'bool', num: word === 'true' ? 1n : 0n };
-        throw queryError(PARSE, "expected a value — true, false, a number, or a typed literal such as str('…')", token.pos);
+        throw queryError(
+          PARSE,
+          "expected a value — true, false, a number, or a typed literal such as str('…')",
+          token.pos,
+        );
       }
       case 'number':
         // A bare number is an i32.
@@ -326,7 +348,11 @@ class Parser {
       const typeToken = this.peek();
       type = this.parseTypeTag();
       if (system !== undefined && canonicalType(type) !== system) {
-        throw queryError(TYPE, `${name} holds ${system}, so it sorts as ${system} — not as ${type}`, typeToken.pos);
+        throw queryError(
+          TYPE,
+          `${name} holds ${system}, so it sorts as ${system} — not as ${type}`,
+          typeToken.pos,
+        );
       }
     }
     type ??= system;
@@ -372,7 +398,8 @@ function inRange(tag: 'i32' | 'u64' | 'u256', value: bigint, position: number): 
   if (tag === 'u64' && value > U64_MAX) {
     throw queryError(LITERAL, 'value is out of range for u64 [0, 18446744073709551615]', position);
   }
-  if (tag === 'u256' && value > U256_MAX) throw queryError(LITERAL, 'value is out of range for u256', position);
+  if (tag === 'u256' && value > U256_MAX)
+    throw queryError(LITERAL, 'value is out of range for u256', position);
   return { type: tag, num: value };
 }
 
@@ -405,12 +432,14 @@ function typedLiteral(token: Token & { kind: 'typed' }): Comparable {
       }
       const digits = BigInt(match[2]! + fraction.padEnd(18, '0'));
       const units = match[1] === '-' ? -digits : digits;
-      if (units > INT256_MAX || units < INT256_MIN) throw queryError(LITERAL, 'value is out of range for dec', at);
+      if (units > INT256_MAX || units < INT256_MIN)
+        throw queryError(LITERAL, 'value is out of range for dec', at);
       return { type: 'dec', num: units };
     }
     case 'str': {
       const text = unquote(content);
-      if (text === undefined) throw queryError(LITERAL, "str takes a single-quoted string, e.g. str('Bob')", at);
+      if (text === undefined)
+        throw queryError(LITERAL, "str takes a single-quoted string, e.g. str('Bob')", at);
       return { type: 'str', bytes: stringToBytes(text) };
     }
     case 'addr': {

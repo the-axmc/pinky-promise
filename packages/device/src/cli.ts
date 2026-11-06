@@ -64,7 +64,8 @@ function parseArgs(argv: string[]): { command: string; flags: Flags } {
   return { command, flags };
 }
 
-const text = (flags: Flags, name: string): string | undefined => (typeof flags[name] === 'string' ? (flags[name] as string) : undefined);
+const text = (flags: Flags, name: string): string | undefined =>
+  typeof flags[name] === 'string' ? (flags[name] as string) : undefined;
 function required(flags: Flags, name: string): string {
   const value = text(flags, name);
   if (!value) throw new Error(`missing --${name}`);
@@ -86,9 +87,12 @@ async function openBoard(port: string, role: 'device' | 'anchor' = 'device'): Pr
 
 async function ports(): Promise<void> {
   const found = await listSerialPorts();
-  if (found.length === 0) return console.log('No serial ports found. Is the board plugged in with a data cable?');
+  if (found.length === 0)
+    return console.log('No serial ports found. Is the board plugged in with a data cable?');
   for (const port of found) {
-    const maker = [port.manufacturer, port.vendorId && `${port.vendorId}:${port.productId}`].filter(Boolean).join(' ');
+    const maker = [port.manufacturer, port.vendorId && `${port.vendorId}:${port.productId}`]
+      .filter(Boolean)
+      .join(' ');
     console.log(`${port.path}${maker ? `   ${maker}` : ''}`);
   }
 }
@@ -106,7 +110,9 @@ async function probe(flags: Flags): Promise<void> {
     }
     const failing = rows.filter((row) => row.ok === false).length;
     const absent = rows.filter((row) => row.ok === null).length;
-    console.log(`\n${failing === 0 ? 'Everything that is wired works.' : `${failing} part(s) need attention.`}${absent ? ` ${absent} not detected: they stay simulated.` : ''}`);
+    console.log(
+      `\n${failing === 0 ? 'Everything that is wired works.' : `${failing} part(s) need attention.`}${absent ? ` ${absent} not detected: they stay simulated.` : ''}`,
+    );
     if (failing > 0) process.exitCode = 1;
   } finally {
     await board.close();
@@ -123,7 +129,9 @@ async function provisionSecureElement(flags: Flags): Promise<void> {
   const board = await openBoard(required(flags, 'port'));
   try {
     const result = await board.request('se.provision', { confirm: 'LOCK-FOREVER' }, 30_000);
-    console.log(`ATECC608B provisioned and locked.\n  serial      0x${result.serial}\n  public key  0x${result.pubkey}`);
+    console.log(
+      `ATECC608B provisioned and locked.\n  serial      0x${result.serial}\n  public key  0x${result.pubkey}`,
+    );
   } finally {
     await board.close();
   }
@@ -133,11 +141,14 @@ async function anchorSetup(flags: Flags): Promise<void> {
   const board = await openBoard(required(flags, 'port'), 'anchor');
   try {
     const info = await board.info();
-    if (info.role !== 'anchor') throw new Error('this board runs the device firmware; flash it with an anchor-* environment first');
+    if (info.role !== 'anchor')
+      throw new Error('this board runs the device firmware; flash it with an anchor-* environment first');
     const { venue_id } = await board.request('anchor.configure', { venue_id: required(flags, 'venue') });
     const about = await board.request('anchor.info');
     const address = addressFromPublicKey(fromHex(`0x${about.pubkey}`, 64));
-    console.log(`Anchor configured for venue ${venue_id}.\n  anchor address  ${address}\n\nRegister the venue at the gateway with this address as its "anchor".`);
+    console.log(
+      `Anchor configured for venue ${venue_id}.\n  anchor address  ${address}\n\nRegister the venue at the gateway with this address as its "anchor".`,
+    );
   } finally {
     await board.close();
   }
@@ -150,7 +161,8 @@ async function getJson(url: string, init?: RequestInit): Promise<any> {
   return JSON.parse(body);
 }
 
-const gatewayUrl = (flags: Flags) => (text(flags, 'gateway') ?? process.env.GATEWAY_URL ?? 'http://127.0.0.1:8787').replace(/\/$/, '');
+const gatewayUrl = (flags: Flags) =>
+  (text(flags, 'gateway') ?? process.env.GATEWAY_URL ?? 'http://127.0.0.1:8787').replace(/\/$/, '');
 
 async function openSession(flags: Flags, gateway: string): Promise<DeviceSession> {
   const dataDir = fromHere(text(flags, 'data') ?? '.data/device');
@@ -160,15 +172,24 @@ async function openSession(flags: Flags, gateway: string): Promise<DeviceSession
   };
   const provisioning = await loadProvisioning(dataDir, published);
   const current = await published().catch(() => undefined);
-  if (current && (current.registry !== provisioning.registry || current.attestor !== provisioning.attestor || current.arkivChainId !== provisioning.arkivChainId)) {
+  if (
+    current &&
+    (current.registry !== provisioning.registry ||
+      current.attestor !== provisioning.attestor ||
+      current.arkivChainId !== provisioning.arkivChainId)
+  ) {
     throw new Error(
       `This device was provisioned for another gateway (registry ${provisioning.registry}).\n` +
         `It will not trust ${gateway}. Use a different --data directory for it, or delete ${dataDir}/provisioning.json to re-provision.`,
     );
   }
-  const simulate = (text(flags, 'sim') ?? '').split(',').map((part) => part.trim()).filter(Boolean);
+  const simulate = (text(flags, 'sim') ?? '')
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
   const unknown = simulate.filter((part) => !PART_NAMES.includes(part as PartName));
-  if (unknown.length) throw new Error(`unknown part(s) in --sim: ${unknown.join(', ')} (known: ${PART_NAMES.join(', ')})`);
+  if (unknown.length)
+    throw new Error(`unknown part(s) in --sim: ${unknown.join(', ')} (known: ${PART_NAMES.join(', ')})`);
   const photos = text(flags, 'photos');
   const minRssi = text(flags, 'min-rssi');
   const session = await openDeviceSession({
@@ -183,7 +204,8 @@ async function openSession(flags: Flags, gateway: string): Promise<DeviceSession
   });
   console.log(`\nDevice ${session.device.address}`);
   const width = Math.max(...session.parts.map((row) => row.part.length));
-  for (const row of session.parts) console.log(`  ${row.part.padEnd(width)}  ${row.source === 'board' ? 'REAL (board)' : row.source}`);
+  for (const row of session.parts)
+    console.log(`  ${row.part.padEnd(width)}  ${row.source === 'board' ? 'REAL (board)' : row.source}`);
   console.log('');
   return session;
 }
@@ -194,14 +216,21 @@ async function enroll(flags: Flags): Promise<void> {
   try {
     const record = await getJson(`${gateway}/v1/admin/devices`, {
       method: 'POST',
-      headers: { authorization: `Bearer ${required(flags, 'admin-token')}`, 'content-type': 'application/json' },
+      headers: {
+        authorization: `Bearer ${required(flags, 'admin-token')}`,
+        'content-type': 'application/json',
+      },
       body: JSON.stringify({
         certBundle: await session.device.certificate(),
-        venueIds: required(flags, 'venues').split(',').map((venue) => venue.trim()),
+        venueIds: required(flags, 'venues')
+          .split(',')
+          .map((venue) => venue.trim()),
         label: text(flags, 'label') ?? 'device',
       }),
     });
-    console.log(`Enrolled ${record.address ?? session.device.address}. Assign it to a lot at the gateway, then: pnpm device run`);
+    console.log(
+      `Enrolled ${record.address ?? session.device.address}. Assign it to a lot at the gateway, then: pnpm device run`,
+    );
   } finally {
     await session.close();
   }
@@ -210,7 +239,10 @@ async function enroll(flags: Flags): Promise<void> {
 async function run(flags: Flags): Promise<void> {
   const gateway = gatewayUrl(flags);
   const session = await openSession(flags, gateway);
-  const home = { latDeg: Number(text(flags, 'lat') ?? 19.0761), lonDeg: Number(text(flags, 'lon') ?? 72.8778) };
+  const home = {
+    latDeg: Number(text(flags, 'lat') ?? 19.0761),
+    lonDeg: Number(text(flags, 'lon') ?? 72.8778),
+  };
   await runInteractive({
     session,
     runner: new DeviceRunner(session.device, new HttpGatewayLink(gateway)),

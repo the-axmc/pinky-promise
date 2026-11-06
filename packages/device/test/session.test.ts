@@ -6,8 +6,24 @@ import { existsSync, mkdtempSync, readFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { CheckpointKind, type Hex, addressFromPublicKey, fromHex, secpAddress, signLotProfile, verifyDeviceCert, verifyReading } from '@pinky/protocol';
-import { BoardClient, type DeviceSession, MockBoard, loadProvisioning, openDeviceSession, probeBoard } from '../src';
+import {
+  CheckpointKind,
+  type Hex,
+  addressFromPublicKey,
+  fromHex,
+  secpAddress,
+  signLotProfile,
+  verifyDeviceCert,
+  verifyReading,
+} from '@pinky/protocol';
+import {
+  BoardClient,
+  type DeviceSession,
+  MockBoard,
+  loadProvisioning,
+  openDeviceSession,
+  probeBoard,
+} from '../src';
 
 const registrySecret = fromHex(`0x${'66'.repeat(32)}`);
 const provisioning = {
@@ -49,7 +65,10 @@ describe('opening a device', () => {
     expect(first.plan).toMatchObject({ wallet: 'sim', climate: 'sim', photo: 'sim' });
     assign(first);
     expect(first.steer.climate(430, 4400)).toBe(true);
-    expect(verifyReading(await first.device.takeReading(anchorBlock)).reading).toMatchObject({ tempCenti: 430, seq: 1 });
+    expect(verifyReading(await first.device.takeReading(anchorBlock)).reading).toMatchObject({
+      tempCenti: 430,
+      seq: 1,
+    });
     const certificate = await first.device.certificate();
     await first.close();
 
@@ -67,7 +86,14 @@ describe('opening a device', () => {
     const logs: string[] = [];
     const session = await open({ provisioning, port: 'mock', mockBoard, log: (line) => logs.push(line) });
     expect(session.boardInfo?.board).toBe('mock');
-    expect(session.plan).toMatchObject({ wallet: 'board', secureElement: 'board', climate: 'board', position: 'board', photo: 'board', nfc: 'board' });
+    expect(session.plan).toMatchObject({
+      wallet: 'board',
+      secureElement: 'board',
+      climate: 'board',
+      position: 'board',
+      photo: 'board',
+      nfc: 'board',
+    });
     expect(session.device.address).toBe(addressFromPublicKey(mockBoard.publicKey));
     assign(session);
     expect(session.steer.climate(1260, 4500)).toBe(true);
@@ -99,9 +125,9 @@ describe('opening a device', () => {
     await before.device.certificate();
     await before.close();
     // Same wallet, but now the real chip is there: the stored certificate names another key.
-    await expect(open({ provisioning, dataDir, port: 'mock', mockBoard: new MockBoard({ walletSecret }) })).rejects.toThrow(
-      /enrolled with a different secure element/,
-    );
+    await expect(
+      open({ provisioning, dataDir, port: 'mock', mockBoard: new MockBoard({ walletSecret }) }),
+    ).rejects.toThrow(/enrolled with a different secure element/);
   });
 
   it('takes the anchor from its own board, and checks each board plays its role', async () => {
@@ -112,12 +138,21 @@ describe('opening a device', () => {
     await session.device.takeReading(anchorBlock);
     const checkpoint = await session.device.takeCheckpoint(CheckpointKind.WAREHOUSE_IN, anchorBlock);
     expect(checkpoint.anchor).toBeDefined();
-    await expect(open({ provisioning, port: 'mock', mockBoard: mockAnchorBoard })).rejects.toThrow(/is a venue anchor, not a device/);
-    await expect(open({ provisioning, anchorPort: 'mock', mockAnchorBoard: new MockBoard() })).rejects.toThrow(/is not a venue anchor/);
+    await expect(open({ provisioning, port: 'mock', mockBoard: mockAnchorBoard })).rejects.toThrow(
+      /is a venue anchor, not a device/,
+    );
+    await expect(
+      open({ provisioning, anchorPort: 'mock', mockAnchorBoard: new MockBoard() }),
+    ).rejects.toThrow(/is not a venue anchor/);
   });
 
   it('says honestly when a real part cannot be steered', async () => {
-    const session = await open({ provisioning, port: 'mock', photos: '/somewhere/photos', simulate: ['sht31'] });
+    const session = await open({
+      provisioning,
+      port: 'mock',
+      photos: '/somewhere/photos',
+      simulate: ['sht31'],
+    });
     expect(session.steer.climate(500, 4500)).toBe(true); // simulated on request
     expect(session.steer.seal('broken')).toBe(false); // photos come from a folder
     expect(session.plan.photo).toEqual({ file: '/somewhere/photos' });
@@ -144,7 +179,8 @@ describe('bring-up probe', () => {
       await client.close();
     }
   };
-  const row = (rows: Array<{ part: string; ok: boolean | null; detail: string }>, part: string) => rows.find((r) => r.part.startsWith(part))!;
+  const row = (rows: Array<{ part: string; ok: boolean | null; detail: string }>, part: string) =>
+    rows.find((r) => r.part.startsWith(part))!;
 
   it('reports every working part of a fully wired device', async () => {
     const board = new MockBoard();
@@ -170,7 +206,10 @@ describe('bring-up probe', () => {
     expect(row(rows, 'ATECC608B').detail).toMatch(/provision-se/);
     expect(row(rows, 'camera')).toMatchObject({ ok: null, detail: 'not detected' });
     expect(row(rows, 'GPS').detail).toMatch(/no fix yet/);
-    expect(row(rows, 'PN532')).toMatchObject({ ok: true, detail: 'reader answers; no tag in the field right now' });
+    expect(row(rows, 'PN532')).toMatchObject({
+      ok: true,
+      detail: 'reader answers; no tag in the field right now',
+    });
   });
 
   it('checks an anchor board, and a device that reaches one over BLE', async () => {
@@ -189,6 +228,9 @@ describe('bring-up probe', () => {
     expect(row(inRange.rows, 'venue anchor').detail).toMatch(/venue DOCK-7, signer 0x/);
     anchor.unplug();
     const outOfRange = await probe(new MockBoard({ bleAnchor: anchor }));
-    expect(row(outOfRange.rows, 'venue anchor')).toMatchObject({ ok: true, detail: 'radio works; no anchor in range right now' });
+    expect(row(outOfRange.rows, 'venue anchor')).toMatchObject({
+      ok: true,
+      detail: 'radio works; no anchor in range right now',
+    });
   });
 });

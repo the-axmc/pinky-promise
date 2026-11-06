@@ -69,7 +69,17 @@ export const SIMULATED_PLAN: HardwarePlan = {
 };
 
 /** The names a person uses for the parts, on the command line and in docs/hardware.md. */
-export const PART_NAMES = ['atecc', 'wallet', 'sht31', 'gps', 'camera', 'nfc', 'enclosure', 'anchor', 'led'] as const;
+export const PART_NAMES = [
+  'atecc',
+  'wallet',
+  'sht31',
+  'gps',
+  'camera',
+  'nfc',
+  'enclosure',
+  'anchor',
+  'led',
+] as const;
 export type PartName = (typeof PART_NAMES)[number];
 
 /**
@@ -127,11 +137,13 @@ export type AssembledHardware = {
 
 export function assembleHardware(plan: HardwarePlan, sources: HardwareSources = {}): AssembledHardware {
   const board = (part: string): BoardClient => {
-    if (!sources.board) throw new ProtocolError(`the plan puts the ${part} on a board, but no board is connected`);
+    if (!sources.board)
+      throw new ProtocolError(`the plan puts the ${part} on a board, but no board is connected`);
     return sources.board;
   };
   const identity = (part: string): SimulatedIdentity => {
-    if (!sources.identity) throw new ProtocolError(`the plan simulates the ${part}, which needs a simulated identity`);
+    if (!sources.identity)
+      throw new ProtocolError(`the plan simulates the ${part}, which needs a simulated identity`);
     return sources.identity;
   };
   const sim: AssembledHardware['sim'] = {};
@@ -140,9 +152,13 @@ export function assembleHardware(plan: HardwarePlan, sources: HardwareSources = 
     plan.secureElement === 'board'
       ? new BoardSecureElement(board('secure element'))
       : new SimulatedSecureElement(identity('secure element').hwSecret, identity('secure element').hwSerial);
-  const wallet = plan.wallet === 'board' ? new BoardWallet(board('wallet')) : new SoftwareWallet(identity('wallet').walletSecret);
+  const wallet =
+    plan.wallet === 'board'
+      ? new BoardWallet(board('wallet'))
+      : new SoftwareWallet(identity('wallet').walletSecret);
 
-  const climate = plan.climate === 'board' ? new BoardClimate(board('SHT31')) : (sim.climate = new ScriptedClimate());
+  const climate =
+    plan.climate === 'board' ? new BoardClimate(board('SHT31')) : (sim.climate = new ScriptedClimate());
 
   let position: DeviceHardware['position'];
   if (plan.position === 'board') position = new BoardPosition(board('GPS'));
@@ -177,7 +193,16 @@ export function assembleHardware(plan: HardwarePlan, sources: HardwareSources = 
   const display = plan.display === 'board' ? new BoardDisplay(board('status LED'), recording) : recording;
 
   return {
-    hardware: { secureElement, wallet, climate, position, seal, anchor, clock: sources.clock ?? systemClock, display },
+    hardware: {
+      secureElement,
+      wallet,
+      climate,
+      position,
+      seal,
+      anchor,
+      clock: sources.clock ?? systemClock,
+      display,
+    },
     plan,
     sim,
     display: recording,
@@ -186,7 +211,12 @@ export function assembleHardware(plan: HardwarePlan, sources: HardwareSources = 
 
 /** One line per part, for the log: what is real and what is simulated. */
 export function describePlan(plan: HardwarePlan): Array<{ part: string; source: string }> {
-  const photo = typeof plan.photo === 'object' ? `file (${plan.photo.file})` : plan.photo === 'board' ? 'board camera' : plan.photo;
+  const photo =
+    typeof plan.photo === 'object'
+      ? `file (${plan.photo.file})`
+      : plan.photo === 'board'
+        ? 'board camera'
+        : plan.photo;
   return [
     { part: 'secure element (ATECC608B)', source: plan.secureElement },
     { part: 'device wallet', source: plan.wallet },

@@ -3,7 +3,15 @@
  * its first handoff, and the page's own code then reads Arkiv and Hedera directly, checks every
  * record, verifies a geofence proof, decrypts the episode log and buys units on the market.
  */
-import { Device, DeviceRunner, HttpGatewayLink, MemoryStorage, SimulatedAnchor, createSimulatedHardware, generateIdentity } from '@pinky/device';
+import {
+  Device,
+  DeviceRunner,
+  HttpGatewayLink,
+  MemoryStorage,
+  SimulatedAnchor,
+  createSimulatedHardware,
+  generateIdentity,
+} from '@pinky/device';
 import { type LocalStack, startLocalStack } from '@pinky/gateway';
 import { CheckpointKind, type Hex } from '@pinky/protocol';
 import { atsTokenAbi, receiptMarketAbi } from '@pinky/protocol/hedera';
@@ -14,7 +22,15 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { type Context, connect } from '../src/lib/config';
 import { fetchDemoViewKey, fetchEpisode } from '../src/lib/episode';
 import { type LotView, listLots, loadLot, verifyProof } from '../src/lib/lot';
-import { buy, demoWallet, explainRefusal, holdingOf, listingsFor, paymentValue, redeem } from '../src/lib/market';
+import {
+  buy,
+  demoWallet,
+  explainRefusal,
+  holdingOf,
+  listingsFor,
+  paymentValue,
+  redeem,
+} from '../src/lib/market';
 import { allOk, checkCheckpoint, checkLot, checkReading } from '../src/lib/verify';
 
 const ASSET = 'LOT-7';
@@ -49,7 +65,11 @@ beforeAll(async () => {
   };
   const { depositor, buyer } = stack.hedera.accounts;
   await admin('/venues', { ...VENUE, radiusM: 150, anchor: anchor.address });
-  await admin('/devices', { certBundle: await device.certificate(), venueIds: [VENUE.venueId], label: 'Pocket sensor #1' });
+  await admin('/devices', {
+    certBundle: await device.certificate(),
+    venueIds: [VENUE.venueId],
+    label: 'Pocket sensor #1',
+  });
   const lot = await admin('/lots', {
     assetId: ASSET,
     title: 'Specialty coffee lot #7',
@@ -76,12 +96,28 @@ beforeAll(async () => {
 
   // The depositor offers 40 units on the market.
   ctx = await connect(stack.url);
-  const wallet = createWalletClient({ chain: ctx.hederaChain, transport: http(), account: privateKeyToAccount(depositor.privateKey) });
+  const wallet = createWalletClient({
+    chain: ctx.hederaChain,
+    transport: http(),
+    account: privateKeyToAccount(depositor.privateKey),
+  });
   const reader = ctx.hedera;
   await stack.gateway.hedera.allowlistSpender(lot.token, stack.hedera.market);
   for (const hash of [
-    await wallet.writeContract({ address: lot.token, abi: atsTokenAbi, functionName: 'approve', args: [stack.hedera.market, 40n], chain: ctx.hederaChain }),
-    await wallet.writeContract({ address: stack.hedera.market, abi: receiptMarketAbi, functionName: 'list', args: [lot.token, 40n, parseEther('0.02')], chain: ctx.hederaChain }),
+    await wallet.writeContract({
+      address: lot.token,
+      abi: atsTokenAbi,
+      functionName: 'approve',
+      args: [stack.hedera.market, 40n],
+      chain: ctx.hederaChain,
+    }),
+    await wallet.writeContract({
+      address: stack.hedera.market,
+      abi: receiptMarketAbi,
+      functionName: 'list',
+      args: [lot.token, 40n, parseEther('0.02')],
+      chain: ctx.hederaChain,
+    }),
   ]) {
     await reader.waitForTransactionReceipt({ hash });
   }
@@ -106,7 +142,12 @@ describe('what the buyer page reads and checks', () => {
   });
 
   it('reads the custody state and supply from Hedera', () => {
-    expect(view.onChain).toMatchObject({ state: 'IN_CUSTODY', breachOpen: false, totalSupply: 100n, agreesWithArkiv: true });
+    expect(view.onChain).toMatchObject({
+      state: 'IN_CUSTODY',
+      breachOpen: false,
+      totalSupply: 100n,
+      agreesWithArkiv: true,
+    });
   });
 
   it('accepts readings only from the device, and notices a forged one', () => {
@@ -115,7 +156,9 @@ describe('what the buyer page reads and checks', () => {
       [2, true],
     ]);
     expect(view.readings.every((reading) => allOk(reading.checks))).toBe(true);
-    expect(view.readings.every((reading) => reading.venue?.venueId === VENUE.venueId && reading.proof)).toBe(true);
+    expect(view.readings.every((reading) => reading.venue?.venueId === VENUE.venueId && reading.proof)).toBe(
+      true,
+    );
     const forged = { ...view.readings[0]!, digest: view.readings[1]!.digest };
     expect(checkReading(forged, view.lot).map((check) => check.ok)).toEqual([true, false]);
     const impostor = { ...view.readings[0]!, creator: `0x${'12'.repeat(20)}` as Hex };
@@ -125,7 +168,12 @@ describe('what the buyer page reads and checks', () => {
   it('checks the handoff: device signature, attested decision, venue anchor', () => {
     expect(view.checkpoints).toHaveLength(1);
     const record = view.checkpoints[0]!;
-    expect(record).toMatchObject({ kind: 'WAREHOUSE_IN', decision: 'ACCEPT_CUSTODY', outcome: 'ACCEPTED', zgSource: 'dev-mock' });
+    expect(record).toMatchObject({
+      kind: 'WAREHOUSE_IN',
+      decision: 'ACCEPT_CUSTODY',
+      outcome: 'ACCEPTED',
+      zgSource: 'dev-mock',
+    });
     expect(record.zgRequestId).toMatch(/^mock-/);
     expect(record.checks.map((check) => [check.label, check.ok])).toEqual([
       ['Written by the device wallet', true],
@@ -136,22 +184,37 @@ describe('what the buyer page reads and checks', () => {
     ]);
     // A reading that was signed but never published shows as a gap.
     const withheld = checkCheckpoint(record, view.lot, view.venues, view.readings.slice(1));
-    expect(withheld[3]).toEqual({ ok: false, label: 'Every reading it was judged on is published', detail: '1 of 2 readings are on Arkiv' });
+    expect(withheld[3]).toEqual({
+      ok: false,
+      label: 'Every reading it was judged on is published',
+      detail: '1 of 2 readings are on Arkiv',
+    });
     // And one swapped for another does not hash to what the device committed to.
-    const swapped = checkCheckpoint(record, view.lot, view.venues, [view.readings[0]!, { ...view.readings[1]!, digest: view.readings[0]!.digest }]);
+    const swapped = checkCheckpoint(record, view.lot, view.venues, [
+      view.readings[0]!,
+      { ...view.readings[1]!, digest: view.readings[0]!.digest },
+    ]);
     expect(swapped[3]).toMatchObject({ ok: false });
     // A decision attested by anyone but the lot's attestor does not count.
     const otherAttestor = { ...view.lot, attestor: `0x${'77'.repeat(20)}` as Hex };
     expect(checkCheckpoint(record, otherAttestor, view.venues)[2]).toMatchObject({ ok: false });
     // Nor does a request id that is not the one that was attested.
-    expect(checkCheckpoint({ ...record, zgRequestId: 'mock-something-else' }, view.lot, view.venues)[2]).toMatchObject({ ok: false });
+    expect(
+      checkCheckpoint({ ...record, zgRequestId: 'mock-something-else' }, view.lot, view.venues)[2],
+    ).toMatchObject({ ok: false });
   });
 
   it('verifies a geofence proof from public data, and not for another venue', async () => {
     expect(view.proofs).toHaveLength(2);
     expect(view.proofs.every((proof) => allOk(proof.checks))).toBe(true);
     expect(await verifyProof(view, view.proofs[0]!)).toBe(true);
-    const elsewhere = { ...view, venues: view.venues.map((venue) => ({ ...venue, box: { ...venue.box, latMin: venue.box.latMin + 5_000, latMax: venue.box.latMax + 5_000 } })) };
+    const elsewhere = {
+      ...view,
+      venues: view.venues.map((venue) => ({
+        ...venue,
+        box: { ...venue.box, latMin: venue.box.latMin + 5_000, latMax: venue.box.latMax + 5_000 },
+      })),
+    };
     expect(await verifyProof(elsewhere, view.proofs[0]!)).toBe(false);
   }, 120_000);
 
@@ -172,7 +235,12 @@ describe('what the buyer page reads and checks', () => {
     expect(listing).toMatchObject({ unitsLeft: 40n, pricePerUnit: parseEther('0.02') });
     const buyer = demoWallet(ctx)!;
     expect(buyer.address).toBe(stack.hedera.accounts.buyer.address.toLowerCase());
-    expect(await holdingOf(ctx, view.onChain!.token, buyer.address)).toEqual({ free: 0n, frozen: 0n, allowlisted: true, kyc: true });
+    expect(await holdingOf(ctx, view.onChain!.token, buyer.address)).toEqual({
+      free: 0n,
+      frozen: 0n,
+      allowlisted: true,
+      kyc: true,
+    });
 
     await buy(ctx, buyer, listing!, 5n);
     expect(await holdingOf(ctx, view.onChain!.token, buyer.address)).toMatchObject({ free: 5n });
@@ -182,8 +250,14 @@ describe('what the buyer page reads and checks', () => {
   it('is refused by the token itself when the buyer is not allow-listed', async () => {
     const [listing] = await listingsFor(ctx, view.onChain!.token);
     const outsider = stack.hedera.accounts.outsider;
-    const wallet = createWalletClient({ chain: ctx.hederaChain, transport: http(), account: privateKeyToAccount(outsider.privateKey) });
-    await expect(buy(ctx, { address: outsider.address.toLowerCase() as Hex, wallet, kind: 'browser' }, listing!, 1n)).rejects.toThrow();
+    const wallet = createWalletClient({
+      chain: ctx.hederaChain,
+      transport: http(),
+      account: privateKeyToAccount(outsider.privateKey),
+    });
+    await expect(
+      buy(ctx, { address: outsider.address.toLowerCase() as Hex, wallet, kind: 'browser' }, listing!, 1n),
+    ).rejects.toThrow();
     expect((await listingsFor(ctx, view.onChain!.token))[0]!.unitsLeft).toBe(35n);
   });
 
@@ -196,7 +270,11 @@ describe('what the buyer page reads and checks', () => {
   });
 
   it('explains a refusal by the token in words', () => {
-    expect(explainRefusal(new Error('The contract function "buy" reverted with the following signature: 0x66eb1b54'))).toMatch(/compliance rules do not allow trading/);
+    expect(
+      explainRefusal(
+        new Error('The contract function "buy" reverted with the following signature: 0x66eb1b54'),
+      ),
+    ).toMatch(/compliance rules do not allow trading/);
     expect(explainRefusal(new Error('insufficient funds\nfor gas'))).toBe('insufficient funds for gas');
   });
 

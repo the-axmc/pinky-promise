@@ -81,7 +81,9 @@ describe('reading (PPR1)', () => {
     expect(toHex(payload.subarray(4, 24))).toBe(device);
     expect(new TextDecoder().decode(payload.subarray(24, 30))).toBe('LOT-42');
     expect(payload.subarray(30, 56).every((byte) => byte === 0)).toBe(true);
-    expect(toHex(payload.subarray(READING_GPS_OFFSET, READING_GPS_OFFSET + 32))).toBe(toHex(gpsCommitment(opening)));
+    expect(toHex(payload.subarray(READING_GPS_OFFSET, READING_GPS_OFFSET + 32))).toBe(
+      toHex(gpsCommitment(opening)),
+    );
   });
 
   it('round-trips, including a negative temperature', () => {
@@ -210,7 +212,9 @@ describe('checkpoint (PPC1)', () => {
   });
 
   it('commits to the bundled readings in order', () => {
-    expect(toHex(readingsRoot([digests[1]!, digests[0]!, digests[2]!]))).not.toBe(toHex(readingsRoot(digests)));
+    expect(toHex(readingsRoot([digests[1]!, digests[0]!, digests[2]!]))).not.toBe(
+      toHex(readingsRoot(digests)),
+    );
     expect(() => readingsRoot([])).toThrow(ProtocolError);
   });
 
@@ -232,7 +236,10 @@ describe('checkpoint (PPC1)', () => {
 describe('venue anchor attestation (PPA1)', () => {
   it('round-trips and reports who signed', () => {
     const anchorSecret = fromHex(`0x${'33'.repeat(32)}`);
-    const signed = signAnchorAttestation({ venueId: 'WH-MUM-01', device, blockhash, counter: 12 }, anchorSecret);
+    const signed = signAnchorAttestation(
+      { venueId: 'WH-MUM-01', device, blockhash, counter: 12 },
+      anchorSecret,
+    );
     expect(fromHex(signed.payload).length).toBe(ANCHOR_LENGTH);
     const verified = verifyAnchorAttestation(signed);
     expect(verified.signer).toBe(secpAddress(anchorSecret));
@@ -246,7 +253,12 @@ describe('device certificate (PPD1)', () => {
   const hwSerial = '0x0123456789abcdef01' as const;
 
   it('binds the wallet to the hardware key with both signatures', () => {
-    const bundle = issueDeviceCert({ hwSecret, walletSecret: deviceSecret, hwSerial, issuedAt: 1_793_900_000 });
+    const bundle = issueDeviceCert({
+      hwSecret,
+      walletSecret: deviceSecret,
+      hwSerial,
+      issuedAt: 1_793_900_000,
+    });
     expect(fromHex(bundle).length).toBe(CERT_BUNDLE_LENGTH);
     const verified = verifyDeviceCert(bundle);
     expect(verified.cert.device).toBe(device);
@@ -263,7 +275,9 @@ describe('device certificate (PPD1)', () => {
 
   it('rejects a certificate countersigned by a different wallet', () => {
     const good = fromHex(issueDeviceCert({ hwSecret, walletSecret: deviceSecret, hwSerial, issuedAt: 1 }));
-    const other = fromHex(issueDeviceCert({ hwSecret, walletSecret: secpGenerateSecret(), hwSerial, issuedAt: 1 }));
+    const other = fromHex(
+      issueDeviceCert({ hwSecret, walletSecret: secpGenerateSecret(), hwSerial, issuedAt: 1 }),
+    );
     good.set(other.subarray(105 + 64), 105 + 64); // someone else's wallet signature
     expect(() => verifyDeviceCert(good)).toThrow(ProtocolError);
   });
@@ -291,9 +305,9 @@ describe('decision attestation (PPX1)', () => {
   it('rejects unknown decision codes and flags', () => {
     const payload = fromHex(signDecisionAttestation(attestation, attestorSecret).payload);
     payload[36] = 4;
-    expect(() => verifyDecisionAttestation({ payload: toHex(payload), sig: `0x${'00'.repeat(64)}1b` })).toThrow(
-      ProtocolError,
-    );
+    expect(() =>
+      verifyDecisionAttestation({ payload: toHex(payload), sig: `0x${'00'.repeat(64)}1b` }),
+    ).toThrow(ProtocolError);
   });
 });
 
@@ -324,12 +338,24 @@ describe('lot profile (PPL1)', () => {
 });
 
 describe('seal evidence', () => {
-  const photo = { sha256: toHex(sha256(new Uint8Array([9, 9, 9]))), mime: 'image/jpeg', source: 'device-camera' as const };
+  const photo = {
+    sha256: toHex(sha256(new Uint8Array([9, 9, 9]))),
+    mime: 'image/jpeg',
+    source: 'device-camera' as const,
+  };
 
   it('round-trips a record and commits to the exact bytes', async () => {
     const { decodeSealEvidence, encodeSealEvidence, sealHash } = await import('../src');
-    const record = encodeSealEvidence({ v: 1, photo, nfc: { uid: '0x04a1b2c3d4e5f6', tamper: 'closed', counter: 12 } });
-    expect(decodeSealEvidence(record)).toEqual({ v: 1, photo, nfc: { uid: '0x04a1b2c3d4e5f6', tamper: 'closed', counter: 12 } });
+    const record = encodeSealEvidence({
+      v: 1,
+      photo,
+      nfc: { uid: '0x04a1b2c3d4e5f6', tamper: 'closed', counter: 12 },
+    });
+    expect(decodeSealEvidence(record)).toEqual({
+      v: 1,
+      photo,
+      nfc: { uid: '0x04a1b2c3d4e5f6', tamper: 'closed', counter: 12 },
+    });
     expect(sealHash(record)).toBe(toHex(sha256(record)));
   });
 
@@ -345,7 +371,9 @@ describe('seal evidence', () => {
     const { sealReportsTamper } = await import('../src');
     expect(sealReportsTamper({ v: 1, nfc: { uid: '0x04', tamper: 'open' } })).toBe(true);
     expect(sealReportsTamper({ v: 1, enclosure: { closed: false } })).toBe(true);
-    expect(sealReportsTamper({ v: 1, photo, nfc: { uid: '0x04', tamper: 'closed' }, enclosure: { closed: true } })).toBe(false);
+    expect(
+      sealReportsTamper({ v: 1, photo, nfc: { uid: '0x04', tamper: 'closed' }, enclosure: { closed: true } }),
+    ).toBe(false);
     expect(sealReportsTamper({ v: 1, photo })).toBe(false);
   });
 

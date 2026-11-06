@@ -25,7 +25,11 @@ export function generateViewKey(): Hex {
   return toHex(randomBytes(32));
 }
 
-export function encryptEpisode(plaintext: Uint8Array, key: Uint8Array, nonce: Uint8Array = randomBytes(16)): Uint8Array {
+export function encryptEpisode(
+  plaintext: Uint8Array,
+  key: Uint8Array,
+  nonce: Uint8Array = randomBytes(16),
+): Uint8Array {
   if (key.length !== 32) throw new ProtocolError('episode key must be 32 bytes');
   if (nonce.length !== 16) throw new ProtocolError('episode nonce must be 16 bytes');
   return concat(Uint8Array.of(SYMMETRIC_VERSION), nonce, ctr(key, nonce).encrypt(plaintext));
@@ -74,7 +78,9 @@ export function summarizeReadings(readings: Reading[], thresholds: Thresholds): 
   const last = sorted[sorted.length - 1]!;
   const worst = Math.max(
     0,
-    ...sorted.map((r) => Math.max(thresholds.tempMinCenti - r.tempCenti, r.tempCenti - thresholds.tempMaxCenti)),
+    ...sorted.map((r) =>
+      Math.max(thresholds.tempMinCenti - r.tempCenti, r.tempCenti - thresholds.tempMaxCenti),
+    ),
   );
   const round = (value: number) => Math.round(value) / 100;
   return {
@@ -152,7 +158,8 @@ export function decodeEpisode(bytes: Uint8Array): EpisodeLog {
   } catch {
     throw new ProtocolError('episode log is not valid UTF-8 JSON (wrong key?)');
   }
-  if (parsed?.v !== 1 || parsed.type !== 'pinky.episode') throw new ProtocolError('not a version 1 episode log');
+  if (parsed?.v !== 1 || parsed.type !== 'pinky.episode')
+    throw new ProtocolError('not a version 1 episode log');
   return parsed;
 }
 

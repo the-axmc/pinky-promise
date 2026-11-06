@@ -78,7 +78,8 @@ export async function startArkivDevnet(options: ArkivDevnetOptions = {}): Promis
     await rpc('anvil_setCode', [ARKIV_ENGINE_ADDRESS, artifact.deployedBytecode]);
 
     const proxyPort = options.port ?? (await freePort());
-    const launchProxy = () => startProxy({ port: proxyPort, upstream: anvil.url, store: new EntityStore(rpc), rpc, chainId });
+    const launchProxy = () =>
+      startProxy({ port: proxyPort, upstream: anvil.url, store: new EntityStore(rpc), rpc, chainId });
     proxy = await launchProxy();
     const rpcUrl = proxy.url;
 

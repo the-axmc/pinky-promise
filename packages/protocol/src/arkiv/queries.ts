@@ -48,7 +48,11 @@ export function fetchLots(reader: ArkivReader, registry: Address): Promise<LotEn
   return all(() => reader.select().from(Lots).createdBy(registry).orderBy(asc('asset_id')), parseLot);
 }
 
-export async function fetchLot(reader: ArkivReader, registry: Address, assetId: string): Promise<LotEntity | undefined> {
+export async function fetchLot(
+  reader: ArkivReader,
+  registry: Address,
+  assetId: string,
+): Promise<LotEntity | undefined> {
   const lots = await all(
     () => reader.select().from(Lots).where(eq('asset_id', assetId)).createdBy(registry),
     parseLot,
@@ -57,9 +61,18 @@ export async function fetchLot(reader: ArkivReader, registry: Address, assetId: 
   return lots.sort((a, b) => Number(b.createdAtBlock - a.createdAtBlock))[0];
 }
 
-export async function fetchDevice(reader: ArkivReader, registry: Address, deviceId: Address): Promise<DeviceEntity | undefined> {
+export async function fetchDevice(
+  reader: ArkivReader,
+  registry: Address,
+  deviceId: Address,
+): Promise<DeviceEntity | undefined> {
   const devices = await all(
-    () => reader.select().from(Devices).where(eq('device_id', addr(deviceId))).createdBy(registry),
+    () =>
+      reader
+        .select()
+        .from(Devices)
+        .where(eq('device_id', addr(deviceId)))
+        .createdBy(registry),
     parseDevice,
   );
   return devices.sort((a, b) => Number(b.createdAtBlock - a.createdAtBlock))[0];
@@ -141,7 +154,13 @@ export function fetchGeoProofs(
   filter: { assetId: string; gateway: Address },
 ): Promise<GeoProofEntity[]> {
   return all(
-    () => reader.select().from(GeoProofs).where(eq('asset_id', filter.assetId)).createdBy(filter.gateway).orderBy(asc('seq')),
+    () =>
+      reader
+        .select()
+        .from(GeoProofs)
+        .where(eq('asset_id', filter.assetId))
+        .createdBy(filter.gateway)
+        .orderBy(asc('seq')),
     parseGeoProof,
   );
 }

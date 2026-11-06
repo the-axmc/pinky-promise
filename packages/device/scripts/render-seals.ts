@@ -64,7 +64,10 @@ const broken = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480"
 </svg>`;
 
 mkdirSync(OUT, { recursive: true });
-for (const [name, svg] of [['seal-intact', intact], ['seal-broken', broken]] as const) {
+for (const [name, svg] of [
+  ['seal-intact', intact],
+  ['seal-broken', broken],
+] as const) {
   const png = new Resvg(svg, { font: { loadSystemFonts: true }, background: '#4b4f55' }).render().asPng();
   writeFileSync(resolve(OUT, `${name}.png`), png);
   console.log(`${name}.png  ${png.length} bytes`);

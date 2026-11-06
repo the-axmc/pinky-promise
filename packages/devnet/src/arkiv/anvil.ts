@@ -51,7 +51,8 @@ export async function startAnvil(options: AnvilOptions): Promise<Anvil> {
   const port = options.port ?? (await freePort());
   const url = `http://127.0.0.1:${port}`;
   const args = ['--host', '127.0.0.1', '--port', String(port), '--chain-id', String(options.chainId)];
-  if (options.blockTime !== undefined && options.blockTime > 0) args.push('--block-time', String(options.blockTime));
+  if (options.blockTime !== undefined && options.blockTime > 0)
+    args.push('--block-time', String(options.blockTime));
   args.push('--silent');
 
   let child: ChildProcess;
@@ -88,7 +89,9 @@ export async function startAnvil(options: AnvilOptions): Promise<Anvil> {
   const deadline = Date.now() + 20_000;
   while (!(await rpcReady(url))) {
     if (exited) {
-      throw new Error(`anvil exited before it was ready (is port ${port} in use?). Output:\n${output.trim()}`);
+      throw new Error(
+        `anvil exited before it was ready (is port ${port} in use?). Output:\n${output.trim()}`,
+      );
     }
     if (Date.now() > deadline) {
       child!.kill('SIGKILL');

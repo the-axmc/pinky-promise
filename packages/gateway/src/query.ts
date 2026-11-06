@@ -15,7 +15,11 @@ import type { PublicConfig } from './http';
 const args = process.argv.slice(2);
 const flag = (name: string) => {
   const index = args.indexOf(`--${name}`);
-  return index < 0 ? undefined : args[index + 1] && !args[index + 1]!.startsWith('--') ? args[index + 1]! : 'true';
+  return index < 0
+    ? undefined
+    : args[index + 1] && !args[index + 1]!.startsWith('--')
+      ? args[index + 1]!
+      : 'true';
 };
 
 async function main(): Promise<void> {
@@ -31,7 +35,10 @@ async function main(): Promise<void> {
   const reader = createPublicClient({ chain, transport: http() });
 
   const lot = await fetchLot(reader, config.arkiv.registry, assetId);
-  if (!lot) throw new Error(`no lot ${assetId} written by registry ${config.arkiv.registry} on chain ${config.arkiv.chainId}`);
+  if (!lot)
+    throw new Error(
+      `no lot ${assetId} written by registry ${config.arkiv.registry} on chain ${config.arkiv.chainId}`,
+    );
   console.log(`Arkiv chain ${config.arkiv.chainId} at ${config.arkiv.rpcUrl}
 
 writer wallets
@@ -46,7 +53,9 @@ writer wallets
   //     .where(and(eq('asset_id', assetId), eq('in_range', false)))
   //     .createdBy(lot.deviceId).orderBy(asc('seq'))
   const readings = await fetchReadings(reader, { assetId, device: lot.deviceId, onlyOutOfRange });
-  console.log(`readings of ${assetId} created by its device${onlyOutOfRange ? ' where in_range = false' : ''}: ${readings.length}`);
+  console.log(
+    `readings of ${assetId} created by its device${onlyOutOfRange ? ' where in_range = false' : ''}: ${readings.length}`,
+  );
   for (const reading of readings) {
     console.log(
       `  #${String(reading.seq).padEnd(4)} ${new Date(reading.ts * 1000).toISOString()}  in_range=${String(reading.inRange).padEnd(5)}  digest ${reading.digest}  entity ${reading.entityKey}`,

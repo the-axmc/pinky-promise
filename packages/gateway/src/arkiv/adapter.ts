@@ -105,7 +105,11 @@ export class ArkivAdapter {
       : { ...rabdi({ accessKey: config.accessKey ?? '' }), blockTime: BLOCK_TIME_MS };
     this.#transport = http(undefined, { timeout: 30_000 });
     this.#pollingInterval = config.pollingIntervalMs ?? 1_000;
-    this.reader = createPublicClient({ chain: this.chain, transport: this.#transport, pollingInterval: this.#pollingInterval });
+    this.reader = createPublicClient({
+      chain: this.chain,
+      transport: this.#transport,
+      pollingInterval: this.#pollingInterval,
+    });
     this.#signRequests = signRequests;
 
     const registry = privateKeyToAccount(config.registryKey);
@@ -113,8 +117,18 @@ export class ArkivAdapter {
     this.registry = registry.address.toLowerCase() as Address;
     this.gateway = gateway.address.toLowerCase() as Address;
     const pollingInterval = this.#pollingInterval;
-    this.#registryWallet = createWalletClient({ chain: this.chain, transport: this.#transport, account: registry, pollingInterval });
-    this.#gatewayWallet = createWalletClient({ chain: this.chain, transport: this.#transport, account: gateway, pollingInterval });
+    this.#registryWallet = createWalletClient({
+      chain: this.chain,
+      transport: this.#transport,
+      account: registry,
+      pollingInterval,
+    });
+    this.#gatewayWallet = createWalletClient({
+      chain: this.chain,
+      transport: this.#transport,
+      account: gateway,
+      pollingInterval,
+    });
   }
 
   // -------------------------------------------------------------------------------------------
@@ -198,7 +212,11 @@ export class ArkivAdapter {
   // -------------------------------------------------------------------------------------------
 
   /** Publishes readings in one transaction the device signs. Resolves with their entity keys. */
-  async createReadings(device: Address, inputs: ReadingInput[], lifetimes: Lifetimes): Promise<{ txHash: Hex; entityKeys: Hex[] }> {
+  async createReadings(
+    device: Address,
+    inputs: ReadingInput[],
+    lifetimes: Lifetimes,
+  ): Promise<{ txHash: Hex; entityKeys: Hex[] }> {
     if (inputs.length === 0) throw new Error('no readings to publish');
     const wallet = this.#deviceWallet(device);
     const expiration = shipmentExpiration(lifetimes);
@@ -224,7 +242,11 @@ export class ArkivAdapter {
   }
 
   /** Publishes a checkpoint record (PENDING or decided) in a transaction the device signs. */
-  async createCheckpoint(device: Address, input: CheckpointInput, lifetimes: Lifetimes): Promise<{ txHash: Hex; entityKey: Hex }> {
+  async createCheckpoint(
+    device: Address,
+    input: CheckpointInput,
+    lifetimes: Lifetimes,
+  ): Promise<{ txHash: Hex; entityKey: Hex }> {
     const wallet = this.#deviceWallet(device);
     return this.#serialized(device, async () => {
       this.#purpose = 'checkpoint';
@@ -256,7 +278,12 @@ export class ArkivAdapter {
     extraGas = 0n,
   ): Promise<{ txHash: Hex; entityKey: Hex }> {
     return this.#serialized(signer, async () => {
-      const result = await (wallet as any).createEntity(schema, values, options, await this.#txParams(signer, 1, extraGas));
+      const result = await (wallet as any).createEntity(
+        schema,
+        values,
+        options,
+        await this.#txParams(signer, 1, extraGas),
+      );
       return { txHash: result.txHash as Hex, entityKey: result.entityKey as Hex };
     });
   }
@@ -275,7 +302,10 @@ export class ArkivAdapter {
     const key = signer.toLowerCase();
     const previous = this.#queues.get(key) ?? Promise.resolve();
     const next = previous.then(task, task);
-    this.#queues.set(key, next.catch(() => {}));
+    this.#queues.set(
+      key,
+      next.catch(() => {}),
+    );
     return next;
   }
 
@@ -296,7 +326,11 @@ export class ArkivAdapter {
           throw new Error('a device only signs Arkiv transactions');
         },
         signTransaction: async (transaction, options) => {
-          if (transaction.gasPrice === undefined || transaction.nonce === undefined || transaction.gas === undefined) {
+          if (
+            transaction.gasPrice === undefined ||
+            transaction.nonce === undefined ||
+            transaction.gas === undefined
+          ) {
             throw new Error('device transactions must be legacy with explicit nonce, gas and gas price');
           }
           const unsigned: UnsignedTransaction = {
@@ -322,9 +356,14 @@ export class ArkivAdapter {
             data: unsigned.data,
           } as const;
           // Anyone can post to the signatures endpoint; only the device's signature is used.
-          const signed = concat(fromHex(signature.r, 32), fromHex(signature.s, 32), Uint8Array.of(27 + signature.yParity));
+          const signed = concat(
+            fromHex(signature.r, 32),
+            fromHex(signature.s, 32),
+            Uint8Array.of(27 + signature.yParity),
+          );
           const signer = secpRecover(fromHex(keccak256(serializeTransaction(fields)), 32), signed).address;
-          if (!sameAddress(signer, device)) throw new Error('the signature returned for the device is not the device\'s');
+          if (!sameAddress(signer, device))
+            throw new Error("the signature returned for the device is not the device's");
           return serialize(fields, {
             r: signature.r,
             s: signature.s,

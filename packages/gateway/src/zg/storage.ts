@@ -84,7 +84,11 @@ export class ZgEpisodeStore implements EpisodeStore {
 
   async put(bytes: Uint8Array): Promise<StoredEpisode> {
     const expected = await zgMerkleRoot(bytes);
-    const [result, error] = await this.#indexer.upload(new MemData(bytes), this.#config.rpcUrl, this.#signer as never);
+    const [result, error] = await this.#indexer.upload(
+      new MemData(bytes),
+      this.#config.rpcUrl,
+      this.#signer as never,
+    );
     if (error) throw new Error(`0G Storage upload failed: ${error.message}`);
     const root = ('rootHash' in result ? result.rootHash : result.rootHashes[0])?.toLowerCase();
     const txHash = 'txHash' in result ? result.txHash : result.txHashes[0];

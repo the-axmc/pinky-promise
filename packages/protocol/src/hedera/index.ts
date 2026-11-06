@@ -62,7 +62,8 @@ export function receiptTokenArgs(params: ReceiptTokenParams) {
   const issuerOnly = [params.issuer] as const;
   const currency = params.currency ?? 'USD';
   if (!/^[A-Z]{3}$/.test(currency)) throw new Error('currency must be a three-letter ISO 4217 code');
-  const currencyBytes3 = `0x${[...currency].map((c) => c.charCodeAt(0).toString(16)).join('')}` as `0x${string}`;
+  const currencyBytes3 =
+    `0x${[...currency].map((c) => c.charCodeAt(0).toString(16)).join('')}` as `0x${string}`;
   const symbol = `WR${params.assetId.replace(/[^A-Za-z0-9]/g, '').toUpperCase()}`.slice(0, 11);
 
   const equityData = {

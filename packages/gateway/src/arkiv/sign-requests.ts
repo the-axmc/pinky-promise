@@ -7,7 +7,12 @@
  */
 import { randomUUID } from 'node:crypto';
 import type { Address } from '@pinky/protocol';
-import type { SignRequest, SignatureSubmission, TransactionSignature, UnsignedTransaction } from '@pinky/device';
+import type {
+  SignRequest,
+  SignatureSubmission,
+  TransactionSignature,
+  UnsignedTransaction,
+} from '@pinky/device';
 
 export class DeviceRefusedError extends Error {
   constructor(reason: string) {
@@ -40,7 +45,11 @@ export class SignRequestQueue {
   }
 
   /** Queues a transaction for a device and resolves with its signature. */
-  request(device: Address, purpose: SignRequest['purpose'], transaction: UnsignedTransaction): Promise<TransactionSignature> {
+  request(
+    device: Address,
+    purpose: SignRequest['purpose'],
+    transaction: UnsignedTransaction,
+  ): Promise<TransactionSignature> {
     const id = randomUUID();
     return new Promise<TransactionSignature>((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -48,14 +57,22 @@ export class SignRequestQueue {
         reject(new DeviceTimeoutError(this.#timeoutMs / 1000));
       }, this.#timeoutMs);
       timer.unref?.();
-      this.#pending.set(id, { device: device.toLowerCase() as Address, request: { id, purpose, transaction }, resolve, reject, timer });
+      this.#pending.set(id, {
+        device: device.toLowerCase() as Address,
+        request: { id, purpose, transaction },
+        resolve,
+        reject,
+        timer,
+      });
     });
   }
 
   /** The requests waiting for a device. */
   pendingFor(device: Address): SignRequest[] {
     const wanted = device.toLowerCase();
-    return [...this.#pending.values()].filter((entry) => entry.device === wanted).map((entry) => entry.request);
+    return [...this.#pending.values()]
+      .filter((entry) => entry.device === wanted)
+      .map((entry) => entry.request);
   }
 
   /** Delivers a device's answer. Returns false if the request is unknown, expired or not its own. */

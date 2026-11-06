@@ -82,7 +82,10 @@ describe('bridge client', () => {
   it('reports what the board said when a part fails', async () => {
     const board = new MockBoard({ parts: { sht31: false } });
     const client = connect(board);
-    await expect(client.request('climate.read')).rejects.toMatchObject({ name: 'BoardError', reason: 'unsupported' });
+    await expect(client.request('climate.read')).rejects.toMatchObject({
+      name: 'BoardError',
+      reason: 'unsupported',
+    });
     board.breakPart('gps.read', 'uart framing');
     const failure = await client.request('gps.read').catch((error) => error);
     expect(failure).toBeInstanceOf(BoardError);
@@ -131,13 +134,18 @@ describe('signatures from a microcontroller', () => {
   it('normalises a high s, which ecrecover-style verifiers refuse', () => {
     const n = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141n;
     const high = reference.slice(0, 64);
-    high.set(fromHex(`0x${(n - BigInt(toHex(reference.subarray(32, 64)))).toString(16).padStart(64, '0')}`, 32), 32);
+    high.set(
+      fromHex(`0x${(n - BigInt(toHex(reference.subarray(32, 64)))).toString(16).padStart(64, '0')}`, 32),
+      32,
+    );
     expect(toHex(high)).not.toBe(toHex(reference.slice(0, 64)));
     expect(toHex(toRecoverable(digest, high, signer))).toBe(toHex(reference));
   });
 
   it('refuses a signature made by a different key', () => {
-    expect(() => toRecoverable(digest, reference.slice(0, 64), `0x${'12'.repeat(20)}`)).toThrow(/expected key/);
+    expect(() => toRecoverable(digest, reference.slice(0, 64), `0x${'12'.repeat(20)}`)).toThrow(
+      /expected key/,
+    );
     expect(() => toRecoverable(digest, reference.slice(0, 63), signer)).toThrow(/64 bytes/);
   });
 });
@@ -175,7 +183,9 @@ describe('parts on a board', () => {
     await expect(client.request('se.provision', { confirm: 'yes' })).rejects.toThrow(/LOCK-FOREVER/);
     const provisioned = await client.request('se.provision', { confirm: 'LOCK-FOREVER' });
     expect(provisioned.locked).toBe(true);
-    await expect(client.request('se.provision', { confirm: 'LOCK-FOREVER' })).rejects.toThrow(/already locked/);
+    await expect(client.request('se.provision', { confirm: 'LOCK-FOREVER' })).rejects.toThrow(
+      /already locked/,
+    );
   });
 
   it.each([false, true])('signs with the wallet in flash (high s: %s)', async (highS) => {
@@ -238,8 +248,12 @@ describe('seal evidence from a board', () => {
     const { evidence, photo } = await new CompositeSeal({ photo: filePhoto(folder) }).capture();
     expect(new TextDecoder().decode(photo!.bytes)).toBe('new picture');
     expect(evidence.photo).toMatchObject({ mime: 'image/png', source: 'file' });
-    await expect(new CompositeSeal({ photo: filePhoto(join(folder, 'missing.jpg')) }).capture()).rejects.toThrow(/no seal photo/);
-    await expect(new CompositeSeal({ photo: filePhoto(join(folder, 'notes.txt')) }).capture()).rejects.toThrow(/supported image/);
+    await expect(
+      new CompositeSeal({ photo: filePhoto(join(folder, 'missing.jpg')) }).capture(),
+    ).rejects.toThrow(/no seal photo/);
+    await expect(
+      new CompositeSeal({ photo: filePhoto(join(folder, 'notes.txt')) }).capture(),
+    ).rejects.toThrow(/supported image/);
   });
 
   it('needs at least one source of evidence', () => {
@@ -256,7 +270,12 @@ describe('venue anchor on a board', () => {
     const first = verifyAnchorAttestation((await anchor.attest(request))!);
     const second = verifyAnchorAttestation((await anchor.attest(request))!);
     expect(first.signer).toBe(addressFromPublicKey(anchorBoard.publicKey));
-    expect(first.attestation).toEqual({ venueId: 'WH-MUMBAI-01', device: request.device, blockhash: request.blockhash, counter: 1 });
+    expect(first.attestation).toEqual({
+      venueId: 'WH-MUMBAI-01',
+      device: request.device,
+      blockhash: request.blockhash,
+      counter: 1,
+    });
     expect(second.attestation.counter).toBe(2);
   });
 
@@ -267,7 +286,9 @@ describe('venue anchor on a board', () => {
     const anchor = new BoardAnchor(client, { onProblem: (reason) => problems.push(reason) });
     expect(await anchor.attest(request)).toBeNull();
     expect(problems[0]).toMatch(/no venue configured/);
-    await expect(client.request('anchor.configure', { venue_id: 'not a valid id!' })).rejects.toThrow(/bad venue_id/);
+    await expect(client.request('anchor.configure', { venue_id: 'not a valid id!' })).rejects.toThrow(
+      /bad venue_id/,
+    );
     await client.request('anchor.configure', { venue_id: 'DOCK-7' });
     expect((await client.request('anchor.info')).venue_id).toBe('DOCK-7');
     expect(verifyAnchorAttestation((await anchor.attest(request))!).attestation.venueId).toBe('DOCK-7');
@@ -279,7 +300,9 @@ describe('venue anchor on a board', () => {
     const problems: string[] = [];
     const anchor = new BoardAnchor(connect(deviceBoard), { onProblem: (reason) => problems.push(reason) });
     expect((await connect(deviceBoard).info()).has.anchor).toBe(true);
-    expect(verifyAnchorAttestation((await anchor.attest(request))!).signer).toBe(addressFromPublicKey(anchorBoard.publicKey));
+    expect(verifyAnchorAttestation((await anchor.attest(request))!).signer).toBe(
+      addressFromPublicKey(anchorBoard.publicKey),
+    );
     anchorBoard.unplug();
     expect(await anchor.attest(request)).toBeNull();
     expect(problems).toEqual(['board: anchor.attest: no anchor in range']);
@@ -292,17 +315,23 @@ describe('venue anchor on a board', () => {
     // A relay that swaps the public key for its own.
     client.request = (async (command: any, params: any, timeout: any) => {
       const answer: any = await honest(command, params, timeout);
-      return command === 'anchor.attest' ? { ...answer, pubkey: toHex(new MockBoard().publicKey).slice(2) } : answer;
+      return command === 'anchor.attest'
+        ? { ...answer, pubkey: toHex(new MockBoard().publicKey).slice(2) }
+        : answer;
     }) as typeof client.request;
     const problems: string[] = [];
-    expect(await new BoardAnchor(client, { onProblem: (reason) => problems.push(reason) }).attest(request)).toBeNull();
+    expect(
+      await new BoardAnchor(client, { onProblem: (reason) => problems.push(reason) }).attest(request),
+    ).toBeNull();
     expect(problems[0]).toMatch(/expected key/);
   });
 });
 
 describe('planning which parts are real', () => {
   it('uses whatever the board reports and simulates the rest', async () => {
-    const board = new MockBoard({ parts: { atecc608b: false, gps: false, camera: false, pn532: false, enclosure: false } });
+    const board = new MockBoard({
+      parts: { atecc608b: false, gps: false, camera: false, pn532: false, enclosure: false },
+    });
     const plan = planFor(await connect(board).info());
     expect(plan).toEqual({
       secureElement: 'sim',
@@ -319,7 +348,11 @@ describe('planning which parts are real', () => {
 
   it('keeps named parts simulated, and takes photos from a folder when asked', async () => {
     const info = await connect(new MockBoard()).info();
-    const plan = planFor(info, { simulate: ['wallet', 'gps', 'led'], photoFile: '/photos', anchorBoard: true });
+    const plan = planFor(info, {
+      simulate: ['wallet', 'gps', 'led'],
+      photoFile: '/photos',
+      anchorBoard: true,
+    });
     expect(plan).toMatchObject({
       secureElement: 'board',
       wallet: 'sim',
@@ -331,7 +364,9 @@ describe('planning which parts are real', () => {
       anchor: 'board',
       display: 'host',
     });
-    expect(describePlan(plan).find((row) => row.part.startsWith('seal photo'))?.source).toBe('file (/photos)');
+    expect(describePlan(plan).find((row) => row.part.startsWith('seal photo'))?.source).toBe(
+      'file (/photos)',
+    );
   });
 
   it('simulates everything when there is no board, or only an anchor board', async () => {
@@ -341,9 +376,9 @@ describe('planning which parts are real', () => {
   });
 
   it('says what is missing instead of silently simulating it', () => {
-    expect(() => assembleHardware({ ...SIMULATED_PLAN, climate: 'board' }, { identity: generateIdentity() })).toThrow(
-      /SHT31 on a board, but no board is connected/,
-    );
+    expect(() =>
+      assembleHardware({ ...SIMULATED_PLAN, climate: 'board' }, { identity: generateIdentity() }),
+    ).toThrow(/SHT31 on a board, but no board is connected/);
     expect(() => assembleHardware(SIMULATED_PLAN)).toThrow(/needs a simulated identity/);
   });
 });
@@ -395,7 +430,13 @@ describe('a device assembled from parts', () => {
     expect(verified.reading).toMatchObject({ device: device.address, tempCenti: 425, rhCenti: 4550, seq: 1 });
     expect(reading.opening).toMatchObject({ latUnits: 1_090_761_000, lonUnits: 2_528_778_000 });
     expect(verified.reading.gpsCommitment).toBe(
-      toHex(gpsCommitment({ latUnits: 1_090_761_000, lonUnits: 2_528_778_000, salt: fromHex(reading.opening!.salt) })),
+      toHex(
+        gpsCommitment({
+          latUnits: 1_090_761_000,
+          lonUnits: 2_528_778_000,
+          salt: fromHex(reading.opening!.salt),
+        }),
+      ),
     );
 
     const request = await device.takeCheckpoint(CheckpointKind.WAREHOUSE_IN, anchorBlock);
@@ -415,7 +456,9 @@ describe('a device assembled from parts', () => {
   });
 
   it('mixes one real part with simulated ones, and each can be steered or read on its own', async () => {
-    const board = new MockBoard({ parts: { atecc608b: false, gps: false, camera: false, pn532: false, enclosure: false } });
+    const board = new MockBoard({
+      parts: { atecc608b: false, gps: false, camera: false, pn532: false, enclosure: false },
+    });
     board.climate = { tempCenti: 1210, rhCenti: 4000 };
     const client = connect(board);
     const identity = generateIdentity();
@@ -438,7 +481,9 @@ describe('a device assembled from parts', () => {
     // The temperature is the board's (12.10 °C), the position and the seal are the simulator's.
     expect(verifyReading(await device.takeReading(anchorBlock)).reading.tempCenti).toBe(1210);
     const request = await device.takeCheckpoint(CheckpointKind.DOCK_HANDOFF, anchorBlock);
-    expect(decodeSealEvidence(new Uint8Array(Buffer.from(request.seal, 'base64'))).photo?.source).toBe('simulated');
+    expect(decodeSealEvidence(new Uint8Array(Buffer.from(request.seal, 'base64'))).photo?.source).toBe(
+      'simulated',
+    );
     expect(verifyAnchorAttestation(request.anchor!).signer).toBe(venue.address);
   });
 

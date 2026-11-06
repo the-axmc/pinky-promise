@@ -34,7 +34,8 @@ const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 const HASH = /^0x[0-9a-fA-F]{64}$/;
 
 function address(value: unknown, name: string): Address {
-  if (typeof value !== 'string' || !ADDRESS.test(value)) throw new GatewayError(400, `${name} must be an address`);
+  if (typeof value !== 'string' || !ADDRESS.test(value))
+    throw new GatewayError(400, `${name} must be an address`);
   return value.toLowerCase() as Address;
 }
 
@@ -46,7 +47,8 @@ export function createApp(gateway: Gateway, options: AppOptions): Hono {
     if (error instanceof GatewayError) {
       return c.json({ error: error.message, ...(error.detail ?? {}) }, error.status as 400);
     }
-    if (error instanceof ProtocolError || error instanceof SyntaxError) return c.json({ error: error.message }, 400);
+    if (error instanceof ProtocolError || error instanceof SyntaxError)
+      return c.json({ error: error.message }, 400);
     console.error(error);
     return c.json({ error: 'internal error' }, 500);
   });
@@ -55,11 +57,15 @@ export function createApp(gateway: Gateway, options: AppOptions): Hono {
 
   // --- device ---------------------------------------------------------------------------------
 
-  app.get('/v1/device/context', async (c) => c.json(await gateway.context(address(c.req.query('device'), 'device'))));
+  app.get('/v1/device/context', async (c) =>
+    c.json(await gateway.context(address(c.req.query('device'), 'device'))),
+  );
 
   app.post('/v1/device/readings', async (c) => c.json(await gateway.acceptReading(await c.req.json())));
 
-  app.post('/v1/device/checkpoints', async (c) => c.json(await gateway.acceptCheckpoint(await c.req.json()), 202));
+  app.post('/v1/device/checkpoints', async (c) =>
+    c.json(await gateway.acceptCheckpoint(await c.req.json()), 202),
+  );
 
   app.get('/v1/device/checkpoints/:id', (c) => {
     const id = c.req.param('id');
@@ -82,8 +88,10 @@ export function createApp(gateway: Gateway, options: AppOptions): Hono {
 
   const admin = new Hono();
   admin.use('*', async (c, next) => {
-    if (!options.adminToken) throw new GatewayError(403, 'the admin API is disabled (no ADMIN_TOKEN configured)');
-    if (c.req.header('authorization') !== `Bearer ${options.adminToken}`) throw new GatewayError(401, 'bad admin token');
+    if (!options.adminToken)
+      throw new GatewayError(403, 'the admin API is disabled (no ADMIN_TOKEN configured)');
+    if (c.req.header('authorization') !== `Bearer ${options.adminToken}`)
+      throw new GatewayError(401, 'bad admin token');
     await next();
   });
 
@@ -131,7 +139,10 @@ export function createApp(gateway: Gateway, options: AppOptions): Hono {
   admin.post('/lots/:assetId/release', async (c) => {
     const body = await c.req.json();
     if (typeof body.inspectionRef !== 'string' || !HASH.test(body.inspectionRef)) {
-      throw new GatewayError(400, 'inspectionRef must be a 32-byte hash (for example of the inspection report)');
+      throw new GatewayError(
+        400,
+        'inspectionRef must be a 32-byte hash (for example of the inspection report)',
+      );
     }
     return c.json({ txHash: await gateway.release(c.req.param('assetId'), body.inspectionRef) });
   });
@@ -154,7 +165,10 @@ export function createApp(gateway: Gateway, options: AppOptions): Hono {
     } catch (error) {
       throw new GatewayError(404, (error as Error).message);
     }
-    return c.body(bytes as never, 200, { 'content-type': 'application/octet-stream', 'cache-control': 'public, max-age=3600' });
+    return c.body(bytes as never, 200, {
+      'content-type': 'application/octet-stream',
+      'cache-control': 'public, max-age=3600',
+    });
   });
 
   if (options.publicConfig.demo) {
@@ -164,7 +178,9 @@ export function createApp(gateway: Gateway, options: AppOptions): Hono {
       await gateway.onboardInvestor(String(body.assetId), address(body.address, 'address'));
       return c.json({ ok: true });
     });
-    app.get('/v1/demo/lots/:assetId/view-key', (c) => c.json({ viewKey: gateway.viewKey(c.req.param('assetId')) }));
+    app.get('/v1/demo/lots/:assetId/view-key', (c) =>
+      c.json({ viewKey: gateway.viewKey(c.req.param('assetId')) }),
+    );
     app.get('/v1/demo/status', (c) => c.json(gateway.status()));
   }
 

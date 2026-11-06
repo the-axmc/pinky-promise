@@ -26,7 +26,13 @@ const account = (name: string) => {
 };
 const reason = (error: unknown) => (error as Error).message.split('\n')[0];
 
-async function chain(label: string, url: string, expected: number | undefined, who: Array<[string, ReturnType<typeof account>]>, unit: string) {
+async function chain(
+  label: string,
+  url: string,
+  expected: number | undefined,
+  who: Array<[string, ReturnType<typeof account>]>,
+  unit: string,
+) {
   const client = createPublicClient({ transport: http(url, { timeout: 15_000 }) });
   try {
     const id = await client.getChainId();
@@ -51,19 +57,33 @@ async function main(): Promise<void> {
   console.log(file ? `configuration: ${file}\n` : 'no .env file found: using the environment only\n');
 
   console.log('Arkiv');
-  const arkivUrl = env('ARKIV_RPC_URL') ?? rabdi({ accessKey: env('ARKIV_ACCESS_KEY') ?? '' }).rpcUrls.default.http[0]!;
-  if (!env('ARKIV_RPC_URL') && !env('ARKIV_ACCESS_KEY')) warn('no ARKIV_ACCESS_KEY: using the public, rate-limited endpoint');
-  await chain('Arkiv RPC', arkivUrl, env('ARKIV_CHAIN_ID') ? Number(env('ARKIV_CHAIN_ID')) : undefined, [
-    ['registry', account('REGISTRY_KEY')],
-    ['gateway', account('GATEWAY_KEY')],
-  ], 'gas token');
+  const arkivUrl =
+    env('ARKIV_RPC_URL') ?? rabdi({ accessKey: env('ARKIV_ACCESS_KEY') ?? '' }).rpcUrls.default.http[0]!;
+  if (!env('ARKIV_RPC_URL') && !env('ARKIV_ACCESS_KEY'))
+    warn('no ARKIV_ACCESS_KEY: using the public, rate-limited endpoint');
+  await chain(
+    'Arkiv RPC',
+    arkivUrl,
+    env('ARKIV_CHAIN_ID') ? Number(env('ARKIV_CHAIN_ID')) : undefined,
+    [
+      ['registry', account('REGISTRY_KEY')],
+      ['gateway', account('GATEWAY_KEY')],
+    ],
+    'gas token',
+  );
 
   console.log('\nHedera');
-  const hedera = await chain('Hedera RPC', env('HEDERA_RPC_URL') ?? 'https://testnet.hashio.io/api', Number(env('HEDERA_CHAIN_ID') ?? ATS_HEDERA_TESTNET.chainId), [
-    ['issuer', account('HEDERA_ISSUER_KEY')],
-    ['relayer', account('HEDERA_RELAYER_KEY')],
-    ['inspector', account('HEDERA_INSPECTOR_KEY')],
-  ], 'HBAR');
+  const hedera = await chain(
+    'Hedera RPC',
+    env('HEDERA_RPC_URL') ?? 'https://testnet.hashio.io/api',
+    Number(env('HEDERA_CHAIN_ID') ?? ATS_HEDERA_TESTNET.chainId),
+    [
+      ['issuer', account('HEDERA_ISSUER_KEY')],
+      ['relayer', account('HEDERA_RELAYER_KEY')],
+      ['inspector', account('HEDERA_INSPECTOR_KEY')],
+    ],
+    'HBAR',
+  );
   if (hedera) {
     const contracts: Array<[string, string | undefined, string]> = [
       ['ATS factory', env('HEDERA_ATS_FACTORY') ?? ATS_HEDERA_TESTNET.factory, ''],
@@ -90,14 +110,17 @@ async function main(): Promise<void> {
     if (!response.ok) bad(`${router}/models answered HTTP ${response.status}`);
     else {
       const catalog = ((await response.json()) as { data?: Array<Record<string, any>> }).data ?? [];
-      const vision = catalog.filter((model) => model.architecture?.input_modalities?.includes('image')).map((model) => String(model.id));
+      const vision = catalog
+        .filter((model) => model.architecture?.input_modalities?.includes('image'))
+        .map((model) => String(model.id));
       ok(`router answers: ${catalog.length} models, ${vision.length} accept images`);
       // Vision-language models first: they are what the seal check wants.
       const ranked = [...vision].sort((x, y) => Number(/vl|vision/.test(y)) - Number(/vl|vision/.test(x)));
       const some = `${ranked.slice(0, 10).join(', ') || 'none listed'}${ranked.length > 10 ? `, … and ${ranked.length - 10} more` : ''}`;
       const chosen = env('ZG_MODEL');
       if (!chosen) bad(`ZG_MODEL is not set. Models that accept images include: ${some}`);
-      else if (!vision.includes(chosen)) bad(`ZG_MODEL "${chosen}" is not an image model in the catalog. Try one of: ${some}`);
+      else if (!vision.includes(chosen))
+        bad(`ZG_MODEL "${chosen}" is not an image model in the catalog. Try one of: ${some}`);
       else ok(`model ${chosen} accepts images`);
     }
   } catch (error) {
@@ -105,7 +128,13 @@ async function main(): Promise<void> {
   }
 
   console.log('\n0G Storage (episode logs)');
-  await chain('0G chain RPC', env('ZG_STORAGE_RPC_URL') ?? 'https://evmrpc-testnet.0g.ai', undefined, [['storage payer', account('ZG_STORAGE_KEY')]], '0G');
+  await chain(
+    '0G chain RPC',
+    env('ZG_STORAGE_RPC_URL') ?? 'https://evmrpc-testnet.0g.ai',
+    undefined,
+    [['storage payer', account('ZG_STORAGE_KEY')]],
+    '0G',
+  );
   try {
     const indexer = env('ZG_STORAGE_INDEXER_URL') ?? 'https://indexer-storage-testnet-turbo.0g.ai';
     await fetch(indexer, { signal: AbortSignal.timeout(15_000) });

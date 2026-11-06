@@ -46,7 +46,16 @@ export function buildVectors() {
     { name: 'too humid', fields: reading(9, 425, 9100) },
   ];
   function reading(seq: number, tempCenti: number, rhCenti: number): Reading {
-    return { device, assetId, tempCenti, rhCenti, gpsCommitment: commitment, ts: 1_793_966_400 + seq * 30, seq, blockhash };
+    return {
+      device,
+      assetId,
+      tempCenti,
+      rhCenti,
+      gpsCommitment: commitment,
+      ts: 1_793_966_400 + seq * 30,
+      seq,
+      blockhash,
+    };
   }
   const readings = readingFields.map(({ name, fields }) => {
     const signed = signReading(fields, TEST_KEYS.device);
@@ -60,11 +69,18 @@ export function buildVectors() {
     };
   });
 
-  const anchor = signAnchorAttestation({ venueId: venue.venueId, device, blockhash, counter: 12 }, TEST_KEYS.anchor);
+  const anchor = signAnchorAttestation(
+    { venueId: venue.venueId, device, blockhash, counter: 12 },
+    TEST_KEYS.anchor,
+  );
   // A seal evidence record with a photo and an NFC seal tag whose tamper loop is intact.
   const sealRecord = encodeSealEvidence({
     v: 1,
-    photo: { sha256: toHex(sha256(new TextEncoder().encode('seal photo bytes'))), mime: 'image/jpeg', source: 'simulated' },
+    photo: {
+      sha256: toHex(sha256(new TextEncoder().encode('seal photo bytes'))),
+      mime: 'image/jpeg',
+      source: 'simulated',
+    },
     nfc: { uid: '0x04a1b2c3d4e5f6', tagType: 'NTAG213 TT', tamper: 'closed' },
   });
   const checkpointFields = {
@@ -135,7 +151,11 @@ export function buildVectors() {
     description:
       'Test vectors for the Pinky Promise wire formats (v1). All keys are published test keys: never fund or reuse them.',
     keys: {
-      device: { secret: toHex(TEST_KEYS.device), address: device, publicKey: toHex(secpPublicKey(TEST_KEYS.device)) },
+      device: {
+        secret: toHex(TEST_KEYS.device),
+        address: device,
+        publicKey: toHex(secpPublicKey(TEST_KEYS.device)),
+      },
       attestor: { secret: toHex(TEST_KEYS.attestor), address: secpAddress(TEST_KEYS.attestor) },
       anchor: { secret: toHex(TEST_KEYS.anchor), address: secpAddress(TEST_KEYS.anchor) },
       registry: { secret: toHex(TEST_KEYS.registry), address: secpAddress(TEST_KEYS.registry) },
@@ -152,8 +172,16 @@ export function buildVectors() {
       venueHash: toHex(venueHash(venue.venueId, venue.box)),
     },
     readings,
-    anchor: { fields: { venueId: venue.venueId, device, blockhash, counter: 12 }, ...anchor, digest: checkpointFields.anchorDigest },
-    seal: { record: toHex(sealRecord), text: new TextDecoder().decode(sealRecord), hash: sealHash(sealRecord) },
+    anchor: {
+      fields: { venueId: venue.venueId, device, blockhash, counter: 12 },
+      ...anchor,
+      digest: checkpointFields.anchorDigest,
+    },
+    seal: {
+      record: toHex(sealRecord),
+      text: new TextDecoder().decode(sealRecord),
+      hash: sealHash(sealRecord),
+    },
     checkpoint: { fields: checkpointFields, ...checkpoint, digest: checkpointId },
     attestation: {
       requestId,

@@ -81,10 +81,13 @@ export type GeoBox = { latMin: number; latMax: number; lonMin: number; lonMax: n
 export function assertGeoBox(box: GeoBox): void {
   const { latMin, latMax, lonMin, lonMax } = box;
   for (const value of [latMin, latMax, lonMin, lonMax]) {
-    if (!Number.isInteger(value) || value < 0) throw new ProtocolError('geofence bounds must be non-negative integers');
+    if (!Number.isInteger(value) || value < 0)
+      throw new ProtocolError('geofence bounds must be non-negative integers');
   }
-  if (latMin > latMax || latMax > LAT_MAX_UNITS) throw new ProtocolError('geofence latitude bounds are invalid');
-  if (lonMin > lonMax || lonMax > LON_MAX_UNITS) throw new ProtocolError('geofence longitude bounds are invalid');
+  if (latMin > latMax || latMax > LAT_MAX_UNITS)
+    throw new ProtocolError('geofence latitude bounds are invalid');
+  if (lonMin > lonMax || lonMax > LON_MAX_UNITS)
+    throw new ProtocolError('geofence longitude bounds are invalid');
 }
 
 export function boxContains(box: GeoBox, latUnits: number, lonUnits: number): boolean {

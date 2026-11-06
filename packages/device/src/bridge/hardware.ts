@@ -92,7 +92,9 @@ export class BoardWallet implements WalletSigner {
   }
 
   async address(): Promise<Address> {
-    this.#address ??= addressFromPublicKey(fromHex(hex((await this.#board.request('wallet.info')).pubkey), 64));
+    this.#address ??= addressFromPublicKey(
+      fromHex(hex((await this.#board.request('wallet.info')).pubkey), 64),
+    );
     return this.#address;
   }
 
@@ -208,7 +210,8 @@ export class CompositeSeal implements SealSource {
   readonly #parts: SealParts;
 
   constructor(parts: SealParts) {
-    if (!parts.photo && !parts.nfc && !parts.enclosure) throw new ProtocolError('no source of seal evidence configured');
+    if (!parts.photo && !parts.nfc && !parts.enclosure)
+      throw new ProtocolError('no source of seal evidence configured');
     this.#parts = parts;
   }
 
@@ -269,7 +272,9 @@ export class BoardAnchor implements AnchorSource {
         15_000,
       );
       if (this.#minRssi !== undefined && answer.rssi !== undefined && answer.rssi < this.#minRssi) {
-        throw new ProtocolError(`anchor heard at ${answer.rssi} dBm, weaker than the ${this.#minRssi} dBm required`);
+        throw new ProtocolError(
+          `anchor heard at ${answer.rssi} dBm, weaker than the ${this.#minRssi} dBm required`,
+        );
       }
       const payload = fromHex(hex(answer.payload));
       const signer = addressFromPublicKey(fromHex(hex(answer.pubkey), 64));
@@ -297,7 +302,10 @@ export class BoardDisplay implements StatusDisplay {
     this.last = status;
     this.#also?.show(status);
     this.#board
-      .request('display.show', { state: status.state, ...(status.detail ? { detail: status.detail.slice(0, 80) } : {}) })
+      .request('display.show', {
+        state: status.state,
+        ...(status.detail ? { detail: status.detail.slice(0, 80) } : {}),
+      })
       .catch(() => {});
   }
 }

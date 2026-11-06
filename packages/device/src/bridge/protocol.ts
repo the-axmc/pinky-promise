@@ -53,7 +53,14 @@ export type BoardCommands = {
   'gps.read': {
     request: {};
     /** `chars` counts NMEA characters received so far: 0 means the module is not talking (RX/TX). */
-    response: { fix: boolean; lat_e7?: number; lon_e7?: number; sats?: number; age_ms?: number; chars?: number };
+    response: {
+      fix: boolean;
+      lat_e7?: number;
+      lon_e7?: number;
+      sats?: number;
+      age_ms?: number;
+      chars?: number;
+    };
   };
 
   /** ATECC608B: serial number (9 bytes), the P-256 public key of slot 0 (64 bytes), lock state. */
@@ -64,7 +71,10 @@ export type BoardCommands = {
    * ATECC608B, once per chip and IRREVERSIBLE: write the configuration, lock it, generate the
    * key in slot 0 and lock the data zone. `confirm` must be the literal "LOCK-FOREVER".
    */
-  'se.provision': { request: { confirm: string }; response: { serial: string; pubkey: string; locked: boolean } };
+  'se.provision': {
+    request: { confirm: string };
+    response: { serial: string; pubkey: string; locked: boolean };
+  };
 
   /** The secp256k1 device wallet kept in the ESP32's NVS flash: public key x ‖ y (64 bytes). */
   'wallet.info': { request: {}; response: { pubkey: string } };
@@ -77,7 +87,13 @@ export type BoardCommands = {
   /** PN532: the NFC tag in the field, if any, with its tamper-loop state when it has one. */
   'nfc.read': {
     request: { timeout_ms?: number };
-    response: { present: boolean; uid?: string; type?: string; tamper?: 'closed' | 'open' | 'unknown'; ndef?: string };
+    response: {
+      present: boolean;
+      uid?: string;
+      type?: string;
+      tamper?: 'closed' | 'open' | 'unknown';
+      ndef?: string;
+    };
   };
 
   /** Enclosure tamper switch: current state and how often it has opened since provisioning. */

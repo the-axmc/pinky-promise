@@ -9,14 +9,14 @@ and verifies what is inside. Nothing the product shows comes from a private data
 
 ## Writes
 
-| When | What is written | By |
-| --- | --- | --- |
-| A venue is registered | Venue: its public geofence and anchor address | registry |
-| A device is enrolled | Device: the certificate binding its wallet to its secure element | registry |
-| A lot is created | Lot: limits signed by the registry, the device, the Hedera token, the attestor | registry |
-| The device takes readings | Reading entities, several per transaction | **the device's wallet** |
-| A reading was taken inside a venue | GeoProof: a zero-knowledge proof of that, without the position | gateway |
-| A handoff is recorded | Checkpoint (PENDING), then Checkpoint (decided) with the 0G request id and the episode root | **the device's wallet** |
+| When                               | What is written                                                                             | By                      |
+| ---------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------- |
+| A venue is registered              | Venue: its public geofence and anchor address                                               | registry                |
+| A device is enrolled               | Device: the certificate binding its wallet to its secure element                            | registry                |
+| A lot is created                   | Lot: limits signed by the registry, the device, the Hedera token, the attestor              | registry                |
+| The device takes readings          | Reading entities, several per transaction                                                   | **the device's wallet** |
+| A reading was taken inside a venue | GeoProof: a zero-knowledge proof of that, without the position                              | gateway                 |
+| A handoff is recorded              | Checkpoint (PENDING), then Checkpoint (decided) with the 0G request id and the episode root | **the device's wallet** |
 
 Details that mattered:
 
@@ -39,13 +39,13 @@ Code: `packages/gateway/src/arkiv/adapter.ts`.
 The buyer page (`packages/web`) is the feature that reads from Arkiv. For the chosen lot it runs
 these queries from the browser and then checks every result:
 
-| Query | Scoped to | Shown as |
-| --- | --- | --- |
-| Lots | created by the registry | the lot picker |
-| Device, Venues | created by the registry | "why trust this record?" |
-| Readings of the lot | created by the lot's device | the readings strip and table |
-| Checkpoints of the lot | created by the lot's device | the custody timeline, with 0G request ids |
-| GeoProofs of the lot | created by the lot's gateway | location proofs, verified in the browser |
+| Query                  | Scoped to                    | Shown as                                  |
+| ---------------------- | ---------------------------- | ----------------------------------------- |
+| Lots                   | created by the registry      | the lot picker                            |
+| Device, Venues         | created by the registry      | "why trust this record?"                  |
+| Readings of the lot    | created by the lot's device  | the readings strip and table              |
+| Checkpoints of the lot | created by the lot's device  | the custody timeline, with 0G request ids |
+| GeoProofs of the lot   | created by the lot's gateway | location proofs, verified in the browser  |
 
 The checks (`packages/web/src/lib/verify.ts`): each entity's creator is who it should be; the
 device's signature over each reading and checkpoint; the registry's signature over the lot's
@@ -75,5 +75,5 @@ by configuration. From this repository we reached Rabdi read-only (`pnpm doctor`
 - [ ] Fund the registry and gateway wallets on Rabdi and run `pnpm gateway` against it.
 - [ ] Run a journey (`pnpm device run`, or the demo's device against the testnet gateway).
 - [ ] Put the writer wallet addresses in the README (the query command prints them).
-- [ ] Re-read [`friction.md`](friction.md): items marked *(emulator)* should be re-measured on
+- [ ] Re-read [`friction.md`](friction.md): items marked _(emulator)_ should be re-measured on
       Rabdi, and anything new added.

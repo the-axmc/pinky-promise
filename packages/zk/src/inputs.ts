@@ -32,7 +32,8 @@ function fieldHex(value: number): string {
 
 function assertStatement(statement: GeofenceStatement): void {
   if (statement.digest.length !== 32) throw new ProtocolError('geofence digest must be 32 bytes');
-  if (statement.publicKey.length !== 64) throw new ProtocolError('geofence public key must be 64 bytes (x ‖ y)');
+  if (statement.publicKey.length !== 64)
+    throw new ProtocolError('geofence public key must be 64 bytes (x ‖ y)');
   assertGeoBox(statement.box);
 }
 
@@ -53,7 +54,8 @@ export function publicInputsFor(statement: GeofenceStatement): string[] {
 /** The input map Noir executes the circuit with. */
 export function circuitInputs(statement: GeofenceStatement, witness: GeofenceWitness) {
   assertStatement(statement);
-  if (witness.payload.length !== READING_LENGTH) throw new ProtocolError('geofence payload must be 144 bytes');
+  if (witness.payload.length !== READING_LENGTH)
+    throw new ProtocolError('geofence payload must be 144 bytes');
   if (witness.signature.length !== 65 && witness.signature.length !== 64) {
     throw new ProtocolError('geofence signature must be 64 or 65 bytes');
   }

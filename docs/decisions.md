@@ -8,13 +8,13 @@ changing any of these: most exist because two layers have to agree.
 
 Stated first, because the rest of this file describes design, not proof.
 
-| What | Status |
-| --- | --- |
-| The whole flow on one machine | **Verified.** More than 360 automated tests, the scripted journey (`pnpm demo`), and the buyer page driven in a real browser. Arkiv and Hedera are local stand-ins running the unmodified Arkiv SDK and the real ATS contract bytecode. |
+| What                                        | Status                                                                                                                                                                                                                                               |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The whole flow on one machine               | **Verified.** More than 360 automated tests, the scripted journey (`pnpm demo`), and the buyer page driven in a real browser. Arkiv and Hedera are local stand-ins running the unmodified Arkiv SDK and the real ATS contract bytecode.              |
 | Writes to the Arkiv, Hedera and 0G testnets | **Not done.** No funded keys or 0G API key were available while building. `pnpm doctor` reached all three networks read-only; the adapters for them exist and are covered against the stand-ins. Expect first-run issues: fees, rate limits, timing. |
-| Decisions by a real 0G vision model | **Not done.** Local decisions come from a stand-in that recognises two pictures by hash. They are recorded as `dev-mock` on Arkiv and shown as "not 0G" on the buyer page. |
-| Firmware | **Written, not compiled or run.** See [`hardware.md`](hardware.md). |
-| Contracts verified on HashScan | **Not done**: nothing is deployed. `pnpm deploy:hedera` prints the verification commands. |
+| Decisions by a real 0G vision model         | **Not done.** Local decisions come from a stand-in that recognises two pictures by hash. They are recorded as `dev-mock` on Arkiv and shown as "not 0G" on the buyer page.                                                                           |
+| Firmware                                    | **Written, not compiled or run.** See [`hardware.md`](hardware.md).                                                                                                                                                                                  |
+| Contracts verified on HashScan              | **Not done**: nothing is deployed. `pnpm deploy:hedera` prints the verification commands.                                                                                                                                                            |
 
 ## Layer 1 — device
 
@@ -84,7 +84,7 @@ the anchor's own counter. The gateway accepts an attestation only from the ancho
 a venue the device is enrolled at.
 
 **Anchor transport.** Over USB to the host by default; over BLE between the two boards as an
-opt-in firmware build. Only the BLE path is evidence that the *device* was near the anchor.
+opt-in firmware build. Only the BLE path is evidence that the _device_ was near the anchor.
 
 ## Layer 3a — 0G
 
@@ -99,7 +99,7 @@ no 0G request. The gateway retries with backoff. There is no fallback model and 
 answer.
 
 **Who vouches for the decision on-chain.** The Hedera contract cannot call 0G. The gateway signs
-a 110-byte attestation with an *attestor* key: checkpoint, decision, breach flag, the hash of the
+a 110-byte attestation with an _attestor_ key: checkpoint, decision, breach flag, the hash of the
 0G request id and the episode root. That is a trust assumption — the attestor relays 0G
 honestly — and it is bounded two ways: the request id and the full episode are on record for
 audit, and a freeze additionally needs evidence the attestor cannot forge (below). Asking the
@@ -157,7 +157,7 @@ nothing while in transit or frozen.
 
 **What counts as a confirmed breach.** The plan: an out-of-range reading plus a 0G REJECT. On
 chain that is two independent checks. The attestation must be signed by the lot's attestor and
-say REJECT; and the caller must supply a reading signed by the lot's *device* whose values are
+say REJECT; and the caller must supply a reading signed by the lot's _device_ whose values are
 outside the limits stored in the contract, which the contract verifies itself with the SHA-256
 precompile and `ecrecover`. A compromised attestor cannot freeze a lot without a real
 out-of-range reading, and an ACCEPT cannot wave a breach through: it is refused as

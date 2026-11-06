@@ -30,9 +30,11 @@ not measure.
 Indexed attributes make that a filter, combined with "created by this device":
 
 ```ts
-reader.select().from(Readings)
+reader
+  .select()
+  .from(Readings)
   .where(and(eq('asset_id', 'LOT-42'), eq('in_range', false)))
-  .createdBy(deviceAddress)
+  .createdBy(deviceAddress);
 ```
 
 The same goes for "every handoff that was rejected", "the record for this 0G request id" and

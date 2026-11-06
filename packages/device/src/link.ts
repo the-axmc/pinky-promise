@@ -47,7 +47,9 @@ export class HttpGatewayLink implements GatewayLink {
   async #call<T>(path: string, body?: unknown): Promise<T> {
     const response = await this.#fetch(`${this.#baseUrl}${path}`, {
       method: body === undefined ? 'GET' : 'POST',
-      ...(body === undefined ? {} : { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }),
+      ...(body === undefined
+        ? {}
+        : { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }),
       signal: AbortSignal.timeout(30_000),
     });
     const text = await response.text();

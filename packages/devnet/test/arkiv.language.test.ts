@@ -13,7 +13,12 @@ import { matches, sortEntities } from '../src/arkiv/query/evaluate';
 import { parseQuery } from '../src/arkiv/query/parser';
 
 const word = (value: bigint) => hexToBytes(toHex(BigInt.asUintN(256, value), { size: 32 }));
-const attr = (name: string, type: TypeTag, raw: Uint8Array, indexed = true): StoredAttribute => ({ name, type, indexed, raw });
+const attr = (name: string, type: TypeTag, raw: Uint8Array, indexed = true): StoredAttribute => ({
+  name,
+  type,
+  indexed,
+  raw,
+});
 
 let created = 0;
 function entity(attributes: StoredAttribute[], overrides: Partial<StoredEntity> = {}): StoredEntity {
@@ -69,7 +74,10 @@ const ALL = [hammer, saw, ball];
 /** The entities a query matches, by position in ALL, in result order. */
 function run(query: string): number[] {
   const parsed = parseQuery(query);
-  return sortEntities(ALL.filter((e) => matches(parsed.where, e)), parsed.orderBy).map((e) => ALL.indexOf(e));
+  return sortEntities(
+    ALL.filter((e) => matches(parsed.where, e)),
+    parsed.orderBy,
+  ).map((e) => ALL.indexOf(e));
 }
 
 function rejection(query: string): { code: number; message: string; position: number | undefined } {
@@ -77,7 +85,11 @@ function rejection(query: string): { code: number; message: string; position: nu
     parseQuery(query);
   } catch (error) {
     if (error instanceof RpcError) {
-      return { code: error.code, message: error.message, position: (error.data as { position?: number } | undefined)?.position };
+      return {
+        code: error.code,
+        message: error.message,
+        position: (error.data as { position?: number } | undefined)?.position,
+      };
     }
     throw error;
   }
@@ -141,7 +153,9 @@ describe('conditions', () => {
 
   it('reads names with dots, dashes and underscores, keywords in any case, and comments', () => {
     expect(run("a.b-c_d = str('it''s')")).toEqual([2]);
-    expect(run("category = str('toys') and exists(a.b-c_d) -- the rest is a comment AND active = false")).toEqual([2]);
+    expect(
+      run("category = str('toys') and exists(a.b-c_d) -- the rest is a comment AND active = false"),
+    ).toEqual([2]);
     expect(run("CATEGORY = str('tools')")).toEqual([]); // names are case-sensitive
     expect(run('order = i32(1)')).toEqual([2]); // "order" is only a keyword in ORDER BY
     expect(run('  \n stock\t=\n i32( 10 )  ')).toEqual([0]);
@@ -182,7 +196,11 @@ describe('rejections, as on Rabdi', () => {
   const S = "arkiv.schema = str('arkiv-chunking/manifest/v2')"; // 48 characters, as in the captures
 
   it('parse errors (-32001)', () => {
-    expect(rejection('')).toEqual({ code: -32001, message: 'empty query — write a predicate, or * to match every entity', position: 0 });
+    expect(rejection('')).toEqual({
+      code: -32001,
+      message: 'empty query — write a predicate, or * to match every entity',
+      position: 0,
+    });
     expect(rejection('   -- only a comment')).toMatchObject({ code: -32001, position: 0 });
     expect(rejection('$owner = 0x0000000000000000000000000000000000000001')).toEqual({
       code: -32001,
@@ -190,7 +208,11 @@ describe('rejections, as on Rabdi', () => {
       position: 9,
     });
     expect(rejection(`${S} AND metadata = bytes(0x00)`)).toMatchObject({ code: -32001, position: 70 });
-    expect(rejection(`${S} AND x = 4.5`)).toEqual({ code: -32001, message: 'unexpected character', position: 58 });
+    expect(rejection(`${S} AND x = 4.5`)).toEqual({
+      code: -32001,
+      message: 'unexpected character',
+      position: 58,
+    });
     expect(rejection('ORDER BY $key ASC')).toEqual({
       code: -32001,
       message: 'expected a comparison operator (= < <= > >= BETWEEN STARTSWITH)',
@@ -207,7 +229,11 @@ describe('rejections, as on Rabdi', () => {
       message: '* matches every entity and cannot be combined with other predicates',
       position: 2,
     });
-    expect(rejection('not = i32(1)')).toEqual({ code: -32001, message: 'expected an attribute name', position: 4 });
+    expect(rejection('not = i32(1)')).toEqual({
+      code: -32001,
+      message: 'expected an attribute name',
+      position: 4,
+    });
     expect(rejection("arkiv.schema = str('abc'")).toEqual({
       code: -32001,
       message: "unterminated typed literal — expected a closing ')'",
@@ -236,7 +262,8 @@ describe('rejections, as on Rabdi', () => {
     });
     expect(rejection(`${S} AND EXISTS($key)`)).toEqual({
       code: -32002,
-      message: '$key is a system attribute, which every entity carries — exists and typeof take a user attribute',
+      message:
+        '$key is a system attribute, which every entity carries — exists and typeof take a user attribute',
       position: 60,
     });
     expect(rejection(`${S} AND TYPEOF($owner) = addr`)).toMatchObject({ code: -32002, position: 60 });
@@ -272,7 +299,8 @@ describe('rejections, as on Rabdi', () => {
     });
     expect(rejection(`${S} ORDER BY totalbytes`)).toEqual({
       code: -32002,
-      message: 'totalbytes can hold any type, so ORDER BY names the one to sort it as — write ORDER BY totalbytes:str, or another tag',
+      message:
+        'totalbytes can hold any type, so ORDER BY names the one to sort it as — write ORDER BY totalbytes:str, or another tag',
       position: 58,
     });
   });
@@ -283,8 +311,16 @@ describe('rejections, as on Rabdi', () => {
       message: 'value is out of range for i32 [-2147483648, 2147483647] — use u256(…) for larger numbers',
       position: 61,
     });
-    expect(rejection(`${S} AND x = i32(1.5)`)).toEqual({ code: -32003, message: 'i32 expects decimal digits', position: 61 });
-    expect(rejection(`${S} AND x = dec(1e5)`)).toEqual({ code: -32003, message: 'dec expects decimal digits', position: 61 });
+    expect(rejection(`${S} AND x = i32(1.5)`)).toEqual({
+      code: -32003,
+      message: 'i32 expects decimal digits',
+      position: 61,
+    });
+    expect(rejection(`${S} AND x = dec(1e5)`)).toEqual({
+      code: -32003,
+      message: 'dec expects decimal digits',
+      position: 61,
+    });
     expect(rejection(`${S} AND x = u64(-1)`)).toEqual({
       code: -32003,
       message: 'u64 is unsigned — remove the sign, or use i32(…)',

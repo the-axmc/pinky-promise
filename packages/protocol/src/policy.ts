@@ -104,12 +104,16 @@ export function applyCheckpoint(input: PolicyInput): PolicyResult {
   }
 
   // ACCEPT_CUSTODY from here on.
-  if (state === LotState.FROZEN) return { ok: false, reason: 'lot is frozen; an inspector must release it first' };
+  if (state === LotState.FROZEN)
+    return { ok: false, reason: 'lot is frozen; an inspector must release it first' };
   if (breachOpen) return { ok: true, outcome: Outcome.BLOCKED_BY_BREACH, next: state, breachOpen };
 
   const next = nextStateOnAccept(state, kind);
   if (next === undefined) {
-    return { ok: false, reason: `a ${kindLabel(kind)} checkpoint cannot be accepted while ${lotStateName(state)}` };
+    return {
+      ok: false,
+      reason: `a ${kindLabel(kind)} checkpoint cannot be accepted while ${lotStateName(state)}`,
+    };
   }
   return { ok: true, outcome: Outcome.ACCEPTED, next, breachOpen };
 }

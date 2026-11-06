@@ -23,17 +23,7 @@
  * That is the registry's job: it enrols the device by writing the bundle to an Arkiv entity it
  * owns. In production the chip's Microchip-issued certificate would be checked at that point.
  */
-import {
-  type Hex,
-  ProtocolError,
-  concat,
-  equalBytes,
-  fromHex,
-  readU64,
-  toHex,
-  u64be,
-  utf8,
-} from './bytes';
+import { type Hex, ProtocolError, concat, equalBytes, fromHex, readU64, toHex, u64be, utf8 } from './bytes';
 import {
   type Address,
   p256PublicKey,
@@ -73,7 +63,8 @@ export function decodeDeviceCert(payload: Uint8Array): DeviceCert {
   if (payload.length !== CERT_LENGTH) {
     throw new ProtocolError(`device certificate must be ${CERT_LENGTH} bytes, got ${payload.length}`);
   }
-  if (!equalBytes(payload.subarray(0, 4), CERT_MAGIC)) throw new ProtocolError('not a PPD1 device certificate');
+  if (!equalBytes(payload.subarray(0, 4), CERT_MAGIC))
+    throw new ProtocolError('not a PPD1 device certificate');
   return {
     device: toHex(payload.subarray(4, 24)),
     hwPubkey: toHex(payload.subarray(24, 88)),

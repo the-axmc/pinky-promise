@@ -168,7 +168,12 @@ export class SimulatedAnchor implements AnchorSource {
     if (!this.#venueId) return null;
     this.#counter += 1;
     return signAnchorAttestation(
-      { venueId: this.#venueId, device: request.device, blockhash: request.blockhash, counter: this.#counter },
+      {
+        venueId: this.#venueId,
+        device: request.device,
+        blockhash: request.blockhash,
+        counter: this.#counter,
+      },
       this.#secret,
     );
   }

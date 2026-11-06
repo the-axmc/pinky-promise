@@ -92,7 +92,11 @@ function lotInput(registrySecret: Uint8Array, deviceAddress: Hex) {
   };
 }
 
-function readingInput(request: ReadingRequest, anchorBlock: number, overrides: Partial<ReadingInput> = {}): ReadingInput {
+function readingInput(
+  request: ReadingRequest,
+  anchorBlock: number,
+  overrides: Partial<ReadingInput> = {},
+): ReadingInput {
   const { reading, digest } = verifyReading(request);
   return { reading, digest: toHex(digest), sig: request.sig, inRange: true, anchorBlock, ...overrides };
 }
@@ -144,10 +148,19 @@ describe('Arkiv adapter on the local node, through the unmodified SDK', () => {
 
     const venues = await fetchVenues(arkiv.reader, arkiv.registry);
     expect(venues).toHaveLength(1);
-    expect(venues[0]).toMatchObject({ venueId: 'WH-MUM-01', venueHash: venueHashHex(venue), box: venue.box, readonly: true });
+    expect(venues[0]).toMatchObject({
+      venueId: 'WH-MUM-01',
+      venueHash: venueHashHex(venue),
+      box: venue.box,
+      readonly: true,
+    });
 
     const enrolled = await fetchDevice(arkiv.reader, arkiv.registry, device.address);
-    expect(enrolled).toMatchObject({ deviceId: device.address, venueIds: ['WH-MUM-01'], creator: arkiv.registry });
+    expect(enrolled).toMatchObject({
+      deviceId: device.address,
+      venueIds: ['WH-MUM-01'],
+      creator: arkiv.registry,
+    });
 
     const stored = await fetchLot(arkiv.reader, arkiv.registry, ASSET);
     expect(stored).toMatchObject({
@@ -223,7 +236,11 @@ describe('Arkiv adapter on the local node, through the unmodified SDK', () => {
     expect(await arkiv.blockNumberOf(anchor.blockHash)).toBe(anchor.blockNumber);
 
     // The question from the plan, as one indexed query.
-    const breaches = await fetchReadings(arkiv.reader, { assetId: ASSET, device: device.address, onlyOutOfRange: true });
+    const breaches = await fetchReadings(arkiv.reader, {
+      assetId: ASSET,
+      device: device.address,
+      onlyOutOfRange: true,
+    });
     expect(breaches.map((r) => r.seq)).toEqual([2]);
     const atVenue = await fetchReadings(arkiv.reader, {
       assetId: ASSET,
@@ -239,14 +256,24 @@ describe('Arkiv adapter on the local node, through the unmodified SDK', () => {
     const warm = await device.takeReading(anchor);
     // The gateway claims the out-of-range reading was fine.
     await expect(
-      arkiv.createReadings(device.address, [readingInput(warm, anchor.blockNumber, { inRange: true })], lifetimes),
+      arkiv.createReadings(
+        device.address,
+        [readingInput(warm, anchor.blockNumber, { inRange: true })],
+        lifetimes,
+      ),
     ).rejects.toThrow(DeviceRefusedError);
     const readings = await fetchReadings(arkiv.reader, { assetId: ASSET, device: device.address });
     expect(readings.map((r) => r.seq)).toEqual([1, 2]);
 
     // Told truthfully, it signs.
-    await arkiv.createReadings(device.address, [readingInput(warm, anchor.blockNumber, { inRange: false })], lifetimes);
-    expect((await fetchReadings(arkiv.reader, { assetId: ASSET, device: device.address })).map((r) => r.seq)).toEqual([1, 2, 3]);
+    await arkiv.createReadings(
+      device.address,
+      [readingInput(warm, anchor.blockNumber, { inRange: false })],
+      lifetimes,
+    );
+    expect(
+      (await fetchReadings(arkiv.reader, { assetId: ASSET, device: device.address })).map((r) => r.seq),
+    ).toEqual([1, 2, 3]);
   }, 30_000);
 
   it('publishes a PENDING checkpoint record and then the decision', async () => {
@@ -278,7 +305,9 @@ describe('Arkiv adapter on the local node, through the unmodified SDK', () => {
         attestationPayload: signed.payload,
         attestor,
         attestorSig: signed.sig,
-        zg: decided ? { source: 'dev-mock', requestId: 'mock-req-1', model: 'mock-vision' } : { source: 'none' },
+        zg: decided
+          ? { source: 'dev-mock', requestId: 'mock-req-1', model: 'mock-vision' }
+          : { source: 'none' },
         ...(decided ? { breachReading: warmEvidence } : {}),
       };
     };
@@ -286,7 +315,12 @@ describe('Arkiv adapter on the local node, through the unmodified SDK', () => {
     await arkiv.createCheckpoint(device.address, record(Decision.PENDING), lifetimes);
     let records = await fetchCheckpoints(arkiv.reader, { assetId: ASSET, device: device.address });
     expect(records.map((r) => r.decision)).toEqual(['PENDING']);
-    expect(records[0]).toMatchObject({ creator: device.address, kind: 'DOCK_HANDOFF', zgSource: 'none', checkpointId });
+    expect(records[0]).toMatchObject({
+      creator: device.address,
+      kind: 'DOCK_HANDOFF',
+      zgSource: 'none',
+      checkpointId,
+    });
     expect(records[0]!.zgRequestId).toBeUndefined();
 
     // The decided record discloses the out-of-range reading that proves the breach.

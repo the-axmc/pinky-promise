@@ -58,7 +58,9 @@ function renderEntity(entity: StoredEntity, select: Select): Record<string, unkn
   }
 
   // Attributes come back in the order the engine keeps them: ascending by name bytes.
-  const sorted = [...entity.attributes.values()].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  const sorted = [...entity.attributes.values()].sort((a, b) =>
+    a.name < b.name ? -1 : a.name > b.name ? 1 : 0,
+  );
   if (select.attributeSchema) {
     out.attributeSchema = sorted.map(({ name, type, indexed }) => ({ name, type, indexed }));
   }
@@ -77,7 +79,8 @@ function parseQuantity(value: unknown, field: string): number | undefined {
   if (typeof value === 'number') parsed = value;
   else if (typeof value === 'string' && /^0x[0-9a-fA-F]+$/.test(value)) parsed = Number(BigInt(value));
   else throw new RpcError(INVALID_PARAMS, `${field} must be a hex quantity`);
-  if (!Number.isSafeInteger(parsed) || parsed < 0) throw new RpcError(INVALID_PARAMS, `${field} must be a hex quantity`);
+  if (!Number.isSafeInteger(parsed) || parsed < 0)
+    throw new RpcError(INVALID_PARAMS, `${field} must be a hex quantity`);
   return parsed;
 }
 
@@ -103,11 +106,16 @@ function parseSelect(value: unknown): Select {
 
 export async function arkivQuery(store: EntityStore, params: unknown[]): Promise<unknown> {
   const [query, options] = params;
-  if (typeof query !== 'string') throw new RpcError(INVALID_PARAMS, 'the first parameter is the query string');
+  if (typeof query !== 'string')
+    throw new RpcError(INVALID_PARAMS, 'the first parameter is the query string');
   if (options !== undefined && options !== null && (typeof options !== 'object' || Array.isArray(options))) {
     throw new RpcError(INVALID_PARAMS, 'the second parameter is an options object');
   }
-  const { select: rawSelect, limit: rawLimit, offset: rawOffset } = (options ?? {}) as Record<string, unknown>;
+  const {
+    select: rawSelect,
+    limit: rawLimit,
+    offset: rawOffset,
+  } = (options ?? {}) as Record<string, unknown>;
 
   const select = parseSelect(rawSelect);
   const limit = parseQuantity(rawLimit, 'limit') ?? MAX_LIMIT;

@@ -41,10 +41,16 @@ export const LOT_PROFILE_MAGIC = utf8('PPL1');
 export const LOT_PROFILE_LENGTH = 80;
 
 /** The acceptable band for a lot, in hundredths (of °C and of %RH). Bounds are inclusive. */
-export type Thresholds = { tempMinCenti: number; tempMaxCenti: number; rhMinCenti: number; rhMaxCenti: number };
+export type Thresholds = {
+  tempMinCenti: number;
+  tempMaxCenti: number;
+  rhMinCenti: number;
+  rhMaxCenti: number;
+};
 
 export function assertThresholds(thresholds: Thresholds): void {
-  if (thresholds.tempMinCenti > thresholds.tempMaxCenti) throw new ProtocolError('temperature band is inverted');
+  if (thresholds.tempMinCenti > thresholds.tempMaxCenti)
+    throw new ProtocolError('temperature band is inverted');
   if (thresholds.rhMinCenti > thresholds.rhMaxCenti) throw new ProtocolError('humidity band is inverted');
   if (thresholds.rhMaxCenti > 10_000) throw new ProtocolError('humidity cannot exceed 100 %');
 }
@@ -79,7 +85,8 @@ export function decodeLotProfile(payload: Uint8Array): LotProfile {
   if (payload.length !== LOT_PROFILE_LENGTH) {
     throw new ProtocolError(`lot profile must be ${LOT_PROFILE_LENGTH} bytes, got ${payload.length}`);
   }
-  if (!equalBytes(payload.subarray(0, 4), LOT_PROFILE_MAGIC)) throw new ProtocolError('not a PPL1 lot profile');
+  if (!equalBytes(payload.subarray(0, 4), LOT_PROFILE_MAGIC))
+    throw new ProtocolError('not a PPL1 lot profile');
   const profile: LotProfile = {
     assetId: readAsciiFixed(payload.subarray(4, 36)),
     device: toHex(payload.subarray(36, 56)),

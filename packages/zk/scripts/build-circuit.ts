@@ -23,7 +23,12 @@ export const CIRCUIT_DIR = resolve(ROOT, 'circuits/geofence');
 export const CIRCUIT_ARTIFACT = resolve(ROOT, 'artifacts/geofence.circuit.json');
 export const VK_ARTIFACT = resolve(ROOT, 'artifacts/geofence.vk.json');
 
-export type CompiledGeofence = { noir_version: string; hash: string | number; abi: unknown; bytecode: string };
+export type CompiledGeofence = {
+  noir_version: string;
+  hash: string | number;
+  abi: unknown;
+  bytecode: string;
+};
 
 /** Compiles the circuit source. Deterministic for a given Noir version. */
 export async function compileGeofence(): Promise<CompiledGeofence> {
@@ -38,14 +43,15 @@ async function main() {
   const api = await Barretenberg.new();
   let vk: Uint8Array;
   try {
-    vk = await new UltraHonkBackend(circuit.bytecode, api).getVerificationKey({ verifierTarget: VERIFIER_TARGET });
+    vk = await new UltraHonkBackend(circuit.bytecode, api).getVerificationKey({
+      verifierTarget: VERIFIER_TARGET,
+    });
   } finally {
     await api.destroy();
   }
 
-  const bbVersion = JSON.parse(
-    readFileSync(resolve(ROOT, 'node_modules/@aztec/bb.js/package.json'), 'utf8'),
-  ).version as string;
+  const bbVersion = JSON.parse(readFileSync(resolve(ROOT, 'node_modules/@aztec/bb.js/package.json'), 'utf8'))
+    .version as string;
 
   mkdirSync(dirname(CIRCUIT_ARTIFACT), { recursive: true });
   writeFileSync(CIRCUIT_ARTIFACT, JSON.stringify({ circuit: GEOFENCE_CIRCUIT, ...circuit }) + '\n');

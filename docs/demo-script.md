@@ -24,18 +24,18 @@ the request ids, HashScan links and Arkiv entities are real.
 
 ## The journey, shot by shot
 
-| # | Terminal | Browser | Say |
-| --- | --- | --- | --- |
-| 1 | Stack starts; the parts table (real vs simulated) | — | A sensor device, a hardware-rooted key, three networks. |
-| 2 | Act 1: two readings, `WAREHOUSE_IN`, **PENDING**, then ACCEPTED | Lot appears: *In custody*, 100 units issued | Every handoff is PENDING until a vision model on 0G has looked at the seal photo and the readings. |
-| 3 | paused | Open "Why trust this record?"; open the handoff's decision record: 0G request id, episode root | Nothing here is taken on our word: the page reads Arkiv and Hedera and checks signatures itself. |
-| 4 | paused | Buy 5 units | The receipt trades only while a venue holds the goods. |
-| 5 | Enter. Acts 2–3: in transit; reading #7 at 12.6 °C | Strip shows one ✕ | The cooling fails on the road. The public record says only *out of range* — the value stays private. |
-| 6 | Act 4: 0G unreachable → **PENDING**, "no decision was made up, the token was not touched" | Handoff shows PENDING | Safe stop: if 0G cannot be asked, nothing is accepted and nothing is faked. |
-| 7 | Act 5: 0G answers → REJECT → **FROZEN** | Lot *Frozen*; "You hold 0 free · 5 frozen"; Buy is off; the disclosed 12.6 °C reading | The token froze itself — on a REJECT *and* a device-signed out-of-range reading the contract verified. |
-| 8 | Enter. Act 6: inspector releases | *In custody* again, units free | Only the inspector can release. |
-| 9 | Act 7: final delivery | *Delivered*; Redeem | Delivered: holders redeem. |
-| 10 | — | "Use the demo key": temperature chart, seal photos. "Verify all in this browser" | The raw values live encrypted on 0G Storage. The location proofs verify here, without revealing where the device was. |
+| #   | Terminal                                                                                  | Browser                                                                                        | Say                                                                                                                   |
+| --- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| 1   | Stack starts; the parts table (real vs simulated)                                         | —                                                                                              | A sensor device, a hardware-rooted key, three networks.                                                               |
+| 2   | Act 1: two readings, `WAREHOUSE_IN`, **PENDING**, then ACCEPTED                           | Lot appears: _In custody_, 100 units issued                                                    | Every handoff is PENDING until a vision model on 0G has looked at the seal photo and the readings.                    |
+| 3   | paused                                                                                    | Open "Why trust this record?"; open the handoff's decision record: 0G request id, episode root | Nothing here is taken on our word: the page reads Arkiv and Hedera and checks signatures itself.                      |
+| 4   | paused                                                                                    | Buy 5 units                                                                                    | The receipt trades only while a venue holds the goods.                                                                |
+| 5   | Enter. Acts 2–3: in transit; reading #7 at 12.6 °C                                        | Strip shows one ✕                                                                              | The cooling fails on the road. The public record says only _out of range_ — the value stays private.                  |
+| 6   | Act 4: 0G unreachable → **PENDING**, "no decision was made up, the token was not touched" | Handoff shows PENDING                                                                          | Safe stop: if 0G cannot be asked, nothing is accepted and nothing is faked.                                           |
+| 7   | Act 5: 0G answers → REJECT → **FROZEN**                                                   | Lot _Frozen_; "You hold 0 free · 5 frozen"; Buy is off; the disclosed 12.6 °C reading          | The token froze itself — on a REJECT _and_ a device-signed out-of-range reading the contract verified.                |
+| 8   | Enter. Act 6: inspector releases                                                          | _In custody_ again, units free                                                                 | Only the inspector can release.                                                                                       |
+| 9   | Act 7: final delivery                                                                     | _Delivered_; Redeem                                                                            | Delivered: holders redeem.                                                                                            |
+| 10  | —                                                                                         | "Use the demo key": temperature chart, seal photos. "Verify all in this browser"               | The raw values live encrypted on 0G Storage. The location proofs verify here, without revealing where the device was. |
 
 ## 0G cut (under 3 minutes)
 

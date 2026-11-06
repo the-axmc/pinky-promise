@@ -103,7 +103,11 @@ export function buildUserPrompt(input: DecisionInput): string {
       count: input.summary.count,
       missing: input.summary.missingSeqs,
       span_seconds: input.summary.spanSeconds,
-      temperature_c: { min: input.summary.tempMinC, max: input.summary.tempMaxC, mean: input.summary.tempMeanC },
+      temperature_c: {
+        min: input.summary.tempMinC,
+        max: input.summary.tempMaxC,
+        mean: input.summary.tempMeanC,
+      },
       humidity_pct: { min: input.summary.rhMinPct, max: input.summary.rhMaxPct },
       limits: input.summary.limits,
       out_of_range: input.summary.outOfRange,
@@ -161,7 +165,9 @@ export class ZgDecisionClient {
   async preflight(): Promise<ZgPreflight> {
     const problems: string[] = [];
     try {
-      const response = await this.#fetch(`${this.config.baseUrl}/models`, { signal: AbortSignal.timeout(15_000) });
+      const response = await this.#fetch(`${this.config.baseUrl}/models`, {
+        signal: AbortSignal.timeout(15_000),
+      });
       if (!response.ok) return { ok: false, problems: [`model catalog answered HTTP ${response.status}`] };
       const catalog = (await response.json()) as { data?: Array<Record<string, any>> };
       const model = catalog.data?.find((entry) => entry.id === this.config.model);
@@ -183,7 +189,10 @@ export class ZgDecisionClient {
     const userContent: unknown[] = [{ type: 'text', text: prompt.user }];
     if (input.photo) {
       const base64 = Buffer.from(input.photo.bytes).toString('base64');
-      userContent.push({ type: 'image_url', image_url: { url: `data:${input.photo.mime};base64,${base64}` } });
+      userContent.push({
+        type: 'image_url',
+        image_url: { url: `data:${input.photo.mime};base64,${base64}` },
+      });
     }
     const body: Record<string, unknown> = {
       model: this.config.model,
@@ -219,31 +228,48 @@ export class ZgDecisionClient {
       payload = undefined;
     }
     const requestId: string | undefined =
-      payload?.x_0g_trace?.request_id ?? payload?.request_id ?? response.headers.get('zg-res-key') ?? payload?.id;
+      payload?.x_0g_trace?.request_id ??
+      payload?.request_id ??
+      response.headers.get('zg-res-key') ??
+      payload?.id;
 
     if (!response.ok) {
       const code = payload?.error?.code ?? payload?.error?.type ?? `HTTP ${response.status}`;
       const detail = `0G answered ${response.status} (${code}): ${String(payload?.error?.message ?? text).slice(0, 200)}`;
       // 429 and 5xx pass; 4xx means this request will keep failing until someone fixes it.
-      const kind: ZgFailureKind = response.status === 429 || response.status >= 500 ? 'unreachable' : 'refused';
+      const kind: ZgFailureKind =
+        response.status === 429 || response.status >= 500 ? 'unreachable' : 'refused';
       throw new ZgUnavailable(kind, detail, requestId);
     }
-    if (!payload) throw new ZgUnavailable('undecided', '0G answered with something that is not JSON', requestId);
+    if (!payload)
+      throw new ZgUnavailable('undecided', '0G answered with something that is not JSON', requestId);
 
     const isStandIn = payload.x_0g_trace?.mock === true;
     if (isStandIn && this.config.mode !== 'mock') {
-      throw new ZgUnavailable('untrusted', 'the answer came from a stand-in, but the gateway is in router mode', requestId);
+      throw new ZgUnavailable(
+        'untrusted',
+        'the answer came from a stand-in, but the gateway is in router mode',
+        requestId,
+      );
     }
     const teeVerified: boolean | null | undefined = payload.x_0g_trace?.tee_verified;
     if (this.config.verifyTee && teeVerified !== true) {
-      throw new ZgUnavailable('untrusted', `TEE verification was requested and came back ${teeVerified}`, requestId);
+      throw new ZgUnavailable(
+        'untrusted',
+        `TEE verification was requested and came back ${teeVerified}`,
+        requestId,
+      );
     }
     if (!requestId) throw new ZgUnavailable('undecided', '0G answered without a request id', undefined);
 
     const rawAnswer: string = payload.choices?.[0]?.message?.content ?? '';
     const parsed = parseDecision(typeof rawAnswer === 'string' ? rawAnswer : '');
     if (!parsed) {
-      throw new ZgUnavailable('undecided', `the model did not return a decision: ${String(rawAnswer).slice(0, 160)}`, requestId);
+      throw new ZgUnavailable(
+        'undecided',
+        `the model did not return a decision: ${String(rawAnswer).slice(0, 160)}`,
+        requestId,
+      );
     }
 
     return {

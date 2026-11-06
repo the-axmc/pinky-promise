@@ -111,23 +111,40 @@ export async function startLocalStack(options: LocalStackOptions = {}): Promise<
     const zgClient = options.zg
       ? new ZgDecisionClient({ mode: 'router', ...options.zg })
       : new ZgDecisionClient({ mode: 'mock', baseUrl: zg.baseUrl, apiKey: 'local-dev', model: MOCK_MODEL });
-    const episodeDir = options.dataDir ? join(options.dataDir, 'zg-storage') : join(process.cwd(), '.data', `zg-storage-${process.pid}`);
+    const episodeDir = options.dataDir
+      ? join(options.dataDir, 'zg-storage')
+      : join(process.cwd(), '.data', `zg-storage-${process.pid}`);
     if (options.dataDir) mkdirSync(options.dataDir, { recursive: true });
     const store = new GatewayStore(options.dataDir ? join(options.dataDir, 'gateway.json') : undefined);
 
-    const gateway = new Gateway(arkiv, hedera, zgClient, new LocalEpisodeStore(episodeDir), signRequests, store, {
-      attestorKey,
-      registryKey,
-      retryBaseMs: 500,
-      retryMaxMs: 3_000,
-      ...(options.log ? { log: options.log } : {}),
-      ...options.gateway,
-    });
+    const gateway = new Gateway(
+      arkiv,
+      hedera,
+      zgClient,
+      new LocalEpisodeStore(episodeDir),
+      signRequests,
+      store,
+      {
+        attestorKey,
+        registryKey,
+        retryBaseMs: 500,
+        retryMaxMs: 3_000,
+        ...(options.log ? { log: options.log } : {}),
+        ...options.gateway,
+      },
+    );
 
     const publicConfig: PublicConfig = {
       arkiv: { rpcUrl: arkivNet.rpcUrl, chainId: arkivNet.chainId, registry: arkiv.registry },
-      hedera: { rpcUrl: hederaNet.rpcUrl, chainId: hederaNet.chainId, oracle: hederaNet.oracle, market: hederaNet.market },
-      zg: options.zg ? { mode: 'router', model: options.zg.model, storage: 'local' } : { mode: 'mock', model: MOCK_MODEL, storage: 'local' },
+      hedera: {
+        rpcUrl: hederaNet.rpcUrl,
+        chainId: hederaNet.chainId,
+        oracle: hederaNet.oracle,
+        market: hederaNet.market,
+      },
+      zg: options.zg
+        ? { mode: 'router', model: options.zg.model, storage: 'local' }
+        : { mode: 'mock', model: MOCK_MODEL, storage: 'local' },
       attestor: gateway.attestor,
       gateway: arkiv.gateway,
       demo: true,

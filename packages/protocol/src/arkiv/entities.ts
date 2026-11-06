@@ -68,7 +68,8 @@ const required = <T>(row: Row, name: string): T => {
 };
 const num = (row: Row, name: string): number => Number(required<bigint>(row, name));
 const hex = (row: Row, name: string): Hex => required<string>(row, name).toLowerCase() as Hex;
-const optHex = (row: Row, name: string): Hex | undefined => value<string>(row[name])?.toLowerCase() as Hex | undefined;
+const optHex = (row: Row, name: string): Hex | undefined =>
+  value<string>(row[name])?.toLowerCase() as Hex | undefined;
 
 // ---------------------------------------------------------------------------------------------
 // Device
@@ -86,7 +87,12 @@ export type DeviceEntity = EntityMeta & {
 };
 
 /** Verifies the certificate bundle and builds the Device entity from what it proves. */
-export function deviceValues(input: { certBundle: Hex; venueIds: string[]; label: string; registeredAt: number }) {
+export function deviceValues(input: {
+  certBundle: Hex;
+  venueIds: string[];
+  label: string;
+  registeredAt: number;
+}) {
   const { cert, walletPublicKey } = verifyDeviceCert(input.certBundle);
   return {
     device_id: addr(cert.device),
@@ -379,7 +385,9 @@ export function checkpointValues(input: CheckpointInput) {
     ...(zg.provider ? { zg_provider: str(fitString(zg.provider)) } : {}),
     ...(zg.teeVerified !== undefined ? { zg_tee_verified: bool(zg.teeVerified) } : {}),
     zg_source: str(zg.source),
-    ...(decided && attestation.episodeRoot !== ZERO_HASH ? { episode_root: str(attestation.episodeRoot) } : {}),
+    ...(decided && attestation.episodeRoot !== ZERO_HASH
+      ? { episode_root: str(attestation.episodeRoot) }
+      : {}),
     reason: str(fitString(input.reason)),
     seq: u64(checkpoint.seq),
     ts: u64(checkpoint.ts),

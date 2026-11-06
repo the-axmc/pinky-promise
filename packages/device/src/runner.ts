@@ -3,7 +3,14 @@
  * and answer requests to sign Arkiv transactions. The simulator and a real board use the same
  * loop; only the hardware behind the Device differs.
  */
-import { type CheckpointKindValue, type Hex, ProtocolError, checkpointDigest, fromHex, toHex } from '@pinky/protocol';
+import {
+  type CheckpointKindValue,
+  type Hex,
+  ProtocolError,
+  checkpointDigest,
+  fromHex,
+  toHex,
+} from '@pinky/protocol';
 import type { Device } from './device';
 import { type GatewayLink, LinkError } from './link';
 import type { ChainAnchor, CheckpointResponse, ReadingResponse } from './wire';
@@ -57,7 +64,10 @@ export class DeviceRunner {
       this.#log('checkpoint.sent', { id, status: response.status });
       return response;
     } catch (error) {
-      const missing = error instanceof LinkError && error.status === 409 ? (error.detail.missing as number[] | undefined) : undefined;
+      const missing =
+        error instanceof LinkError && error.status === 409
+          ? (error.detail.missing as number[] | undefined)
+          : undefined;
       if (!missing?.length) throw error;
       this.#log('checkpoint.resending', { missing });
       for (const seq of missing) {
@@ -77,7 +87,8 @@ export class DeviceRunner {
     const submissions = [];
     for (const request of requests) {
       const submission = await this.device.sign(request);
-      if ('refused' in submission) this.#log('sign.refused', { purpose: request.purpose, reason: submission.refused });
+      if ('refused' in submission)
+        this.#log('sign.refused', { purpose: request.purpose, reason: submission.refused });
       else this.#log('sign.approved', { purpose: request.purpose });
       submissions.push(submission);
     }
@@ -108,7 +119,10 @@ export class DeviceRunner {
    * Polls a checkpoint until it is no longer PENDING, or until the timeout. Resolves with the
    * last status either way: PENDING after a timeout simply means "still not accepted".
    */
-  async awaitDecision(id: Hex, options: { timeoutMs?: number; pollMs?: number } = {}): Promise<CheckpointResponse> {
+  async awaitDecision(
+    id: Hex,
+    options: { timeoutMs?: number; pollMs?: number } = {},
+  ): Promise<CheckpointResponse> {
     const deadline = Date.now() + (options.timeoutMs ?? 60_000);
     let status = await this.link.checkpoint(this.device.address, id);
     while (status.status === 'PENDING' && Date.now() < deadline) {

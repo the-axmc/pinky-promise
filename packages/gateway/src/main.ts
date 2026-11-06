@@ -13,7 +13,9 @@ async function main(): Promise<void> {
   const config = readConfig();
   mkdirSync(config.dataDir, { recursive: true });
   const log = (event: string, detail?: Record<string, unknown>) =>
-    console.log(`${new Date().toISOString().slice(11, 19)}  ${event}${detail ? ` ${JSON.stringify(detail)}` : ''}`);
+    console.log(
+      `${new Date().toISOString().slice(11, 19)}  ${event}${detail ? ` ${JSON.stringify(detail)}` : ''}`,
+    );
   const { gateway, zg, publicConfig } = assembleGateway(config, log);
 
   console.log(`pinky gateway${envFile ? ` (config: ${envFile})` : ''}
@@ -26,10 +28,17 @@ async function main(): Promise<void> {
 
   // 0G must be usable, or every handoff would simply stay PENDING. Say so up front.
   const preflight = await zg.preflight();
-  if (!preflight.ok) console.warn(`\n  WARNING — 0G is not ready: ${preflight.problems.join('; ')}\n  Handoffs will stay PENDING until it is. Run \`pnpm doctor\` for details.\n`);
-  if (!config.adminToken) console.warn('  ADMIN_TOKEN is not set: the admin API (venues, devices, lots) is disabled.');
+  if (!preflight.ok)
+    console.warn(
+      `\n  WARNING — 0G is not ready: ${preflight.problems.join('; ')}\n  Handoffs will stay PENDING until it is. Run \`pnpm doctor\` for details.\n`,
+    );
+  if (!config.adminToken)
+    console.warn('  ADMIN_TOKEN is not set: the admin API (venues, devices, lots) is disabled.');
 
-  const app = createApp(gateway, { publicConfig, ...(config.adminToken ? { adminToken: config.adminToken } : {}) });
+  const app = createApp(gateway, {
+    publicConfig,
+    ...(config.adminToken ? { adminToken: config.adminToken } : {}),
+  });
   const server = serve({ fetch: app.fetch, port: config.port, hostname: config.host });
   gateway.start(1_000);
   console.log(`\n  listening on http://${config.host}:${config.port}\n`);

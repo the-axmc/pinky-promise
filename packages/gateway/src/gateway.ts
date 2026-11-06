@@ -70,7 +70,14 @@ import { GEOFENCE_CIRCUIT, GEOFENCE_VK_HASH, proofHash, proveGeofence } from '@p
 import type { ArkivAdapter } from './arkiv/adapter';
 import { DeviceRefusedError, type SignRequestQueue } from './arkiv/sign-requests';
 import type { HederaAdapter } from './hedera/adapter';
-import type { CheckpointRecord, DeviceRecord, GatewayStore, LotRecord, ReadingRecord, VenueRecord } from './store';
+import type {
+  CheckpointRecord,
+  DeviceRecord,
+  GatewayStore,
+  LotRecord,
+  ReadingRecord,
+  VenueRecord,
+} from './store';
 import { type ZgDecisionClient, ZgUnavailable } from './zg/decision';
 import type { EpisodeStore } from './zg/storage';
 
@@ -123,7 +130,12 @@ const nowSeconds = () => Math.floor(Date.now() / 1000);
 
 export class Gateway {
   readonly attestor: Address;
-  readonly #options: Required<Pick<GatewayOptions, 'geofenceProofs' | 'readingBatchSize' | 'maxAnchorAgeBlocks' | 'retryBaseMs' | 'retryMaxMs'>> &
+  readonly #options: Required<
+    Pick<
+      GatewayOptions,
+      'geofenceProofs' | 'readingBatchSize' | 'maxAnchorAgeBlocks' | 'retryBaseMs' | 'retryMaxMs'
+    >
+  > &
     GatewayOptions;
   /** GPS openings, in memory only, until the proof is made. */
   readonly #openings = new Map<Hex, GpsOpening>();
@@ -197,7 +209,10 @@ export class Gateway {
   }
 
   async #fundDevice(device: Address): Promise<void> {
-    const { minimumWei, topUpWei } = this.#options.deviceTopUp ?? { minimumWei: 10n ** 16n, topUpWei: 5n * 10n ** 16n };
+    const { minimumWei, topUpWei } = this.#options.deviceTopUp ?? {
+      minimumWei: 10n ** 16n,
+      topUpWei: 5n * 10n ** 16n,
+    };
     await this.arkiv.ensureFunded(device, minimumWei, topUpWei);
   }
 
@@ -210,7 +225,9 @@ export class Gateway {
     if (existing) return existing;
     const device = this.store.device(input.device);
     if (!device) throw new GatewayError(404, `device ${input.device} is not enrolled`);
-    if (Object.values(this.store.lots).some((lot) => lot.device === device.address && lot.endsAt > nowSeconds())) {
+    if (
+      Object.values(this.store.lots).some((lot) => lot.device === device.address && lot.endsAt > nowSeconds())
+    ) {
       throw new GatewayError(409, 'this device is already assigned to a lot');
     }
     const thresholds: Thresholds = {
@@ -220,7 +237,12 @@ export class Gateway {
       rhMaxCenti: input.rhMaxCenti,
     };
     const signedProfile = signLotProfile(
-      { assetId: input.assetId, device: device.address, ...thresholds, validUntil: input.endsAt + input.disputeWindowS },
+      {
+        assetId: input.assetId,
+        device: device.address,
+        ...thresholds,
+        validUntil: input.endsAt + input.disputeWindowS,
+      },
       fromHex(this.#options.registryKey, 32),
     );
 
@@ -229,7 +251,13 @@ export class Gateway {
       units: input.units,
       unitValueCents: input.unitValueCents,
     });
-    await this.hedera.registerLot({ assetId: input.assetId, token, device: device.address, attestor: this.attestor, thresholds });
+    await this.hedera.registerLot({
+      assetId: input.assetId,
+      token,
+      device: device.address,
+      attestor: this.attestor,
+      thresholds,
+    });
     await this.hedera.allowlistSpender(token, this.hedera.config.market);
     if (input.depositor) await this.hedera.onboardInvestor(token, input.depositor);
 
@@ -283,7 +311,11 @@ export class Gateway {
   /** The inspector clears a breach. Everything the device has reported so far is covered. */
   async release(assetId: string, inspectionRef: Hex): Promise<Hex> {
     const lot = this.#lot(assetId);
-    const txHash = await this.hedera.release(assetId, inspectionRef, this.store.device(lot.device)?.lastSeq ?? 0);
+    const txHash = await this.hedera.release(
+      assetId,
+      inspectionRef,
+      this.store.device(lot.device)?.lastSeq ?? 0,
+    );
     this.#log('lot.released', { assetId, txHash });
     return txHash;
   }
@@ -311,7 +343,8 @@ export class Gateway {
   /** Checks a freshness anchor names a real, recent block and returns its number. */
   async #anchorBlock(blockhash: Hex): Promise<number> {
     const number = await this.arkiv.blockNumberOf(blockhash);
-    if (number === undefined) throw new GatewayError(400, 'the freshness anchor is not a block of the Arkiv chain');
+    if (number === undefined)
+      throw new GatewayError(400, 'the freshness anchor is not a block of the Arkiv chain');
     const latest = (await this.arkiv.anchor()).blockNumber;
     if (latest - number > this.#options.maxAnchorAgeBlocks) {
       throw new GatewayError(400, `the freshness anchor is ${latest - number} blocks old`);
@@ -345,7 +378,9 @@ export class Gateway {
         throw new GatewayError(400, 'the GPS opening does not match the signed commitment');
       }
       if (!isNoFix(opening)) {
-        venueId = device.venueIds.find((id) => boxContains(this.store.venues[id]!.box, opening.latUnits, opening.lonUnits));
+        venueId = device.venueIds.find((id) =>
+          boxContains(this.store.venues[id]!.box, opening.latUnits, opening.lonUnits),
+        );
         if (venueId && this.#options.geofenceProofs) this.#openings.set(digest, opening);
       }
     }
@@ -367,7 +402,12 @@ export class Gateway {
     this.store.readings[digest] = record;
     device.lastSeq = Math.max(device.lastSeq, reading.seq);
     this.store.touch();
-    this.#log('reading.accepted', { device: device.address, seq: reading.seq, inRange: record.inRange, venueId });
+    this.#log('reading.accepted', {
+      device: device.address,
+      seq: reading.seq,
+      inRange: record.inRange,
+      venueId,
+    });
     this.#kick();
     return { digest, accepted: true };
   }
@@ -383,25 +423,32 @@ export class Gateway {
     const lot = this.#lot(checkpoint.assetId);
     if (lot.device !== device.address) throw new GatewayError(403, 'this device is not assigned to that lot');
     if (checkpoint.seq <= device.lastCheckpointSeq) {
-      throw new GatewayError(409, `checkpoint seq ${checkpoint.seq} is not after ${device.lastCheckpointSeq}`);
+      throw new GatewayError(
+        409,
+        `checkpoint seq ${checkpoint.seq} is not after ${device.lastCheckpointSeq}`,
+      );
     }
     await this.#anchorBlock(checkpoint.blockhash);
 
     // The bundle must be exactly the readings the gateway holds for that window.
     const window = this.store.readingsInWindow(device.address, checkpoint.firstSeq, checkpoint.lastSeq);
-    const root = window.length > 0 ? toHex(readingsRoot(window.map((r) => fromHex(r.digest, 32)))) : undefined;
+    const root =
+      window.length > 0 ? toHex(readingsRoot(window.map((r) => fromHex(r.digest, 32)))) : undefined;
     if (window.length !== checkpoint.readingCount || root !== checkpoint.readingsRoot) {
       const have = new Set(window.map((r) => r.seq));
       const missing: number[] = [];
       for (let seq = checkpoint.firstSeq; seq <= checkpoint.lastSeq && missing.length < 500; seq++) {
         if (!have.has(seq)) missing.push(seq);
       }
-      throw new GatewayError(409, 'the gateway does not hold every reading this checkpoint bundles', { missing });
+      throw new GatewayError(409, 'the gateway does not hold every reading this checkpoint bundles', {
+        missing,
+      });
     }
 
     // Seal evidence: the record must hash to what was signed, and the photo to what it names.
     const sealBytes = new Uint8Array(Buffer.from(request.seal, 'base64'));
-    if (toHex(sha256(sealBytes)) !== checkpoint.sealHash) throw new GatewayError(400, 'seal evidence does not match the signed hash');
+    if (toHex(sha256(sealBytes)) !== checkpoint.sealHash)
+      throw new GatewayError(400, 'seal evidence does not match the signed hash');
     const evidence = this.#verify(() => decodeSealEvidence(sealBytes));
     if (evidence.photo) {
       const photo = request.photo ? new Uint8Array(Buffer.from(request.photo.data, 'base64')) : undefined;
@@ -451,7 +498,9 @@ export class Gateway {
       sealRecord: new TextDecoder().decode(sealBytes),
       ...(request.photo ? { photo: { mime: request.photo.mime, base64: request.photo.data } } : {}),
       ...(anchor ? { anchor } : {}),
-      ...(anchor?.venueId ?? window.at(-1)?.venueId ? { venueId: anchor?.venueId ?? window.at(-1)!.venueId } : {}),
+      ...((anchor?.venueId ?? window.at(-1)?.venueId)
+        ? { venueId: anchor?.venueId ?? window.at(-1)!.venueId }
+        : {}),
       receivedAt: nowSeconds(),
       stage: 'AWAITING_DECISION',
       failedAttempts: [],
@@ -469,7 +518,8 @@ export class Gateway {
 
   checkpointStatus(deviceAddress: Address, id: Hex): CheckpointResponse {
     const record = this.store.checkpoints[id.toLowerCase()];
-    if (!record || record.device !== deviceAddress.toLowerCase()) throw new GatewayError(404, 'unknown checkpoint');
+    if (!record || record.device !== deviceAddress.toLowerCase())
+      throw new GatewayError(404, 'unknown checkpoint');
     return this.#response(record);
   }
 
@@ -563,7 +613,9 @@ export class Gateway {
       const work =
         this.#busy.size > 0 ||
         Object.values(this.store.readings).some((r) => r.arkiv === 'queued' || r.proof === 'queued') ||
-        Object.values(this.store.checkpoints).some((c) => c.stage !== 'APPLIED' && c.stage !== 'FAILED' && c.stage !== 'AWAITING_DECISION');
+        Object.values(this.store.checkpoints).some(
+          (c) => c.stage !== 'APPLIED' && c.stage !== 'FAILED' && c.stage !== 'AWAITING_DECISION',
+        );
       if (!work) return;
       if (Date.now() > deadline) throw new Error('gateway did not become idle in time');
       this.#kick();
@@ -670,7 +722,10 @@ export class Gateway {
   }
 
   #backoff(record: CheckpointRecord, attempts: number): void {
-    const delay = Math.min(this.#options.retryBaseMs * 2 ** Math.max(attempts - 1, 0), this.#options.retryMaxMs);
+    const delay = Math.min(
+      this.#options.retryBaseMs * 2 ** Math.max(attempts - 1, 0),
+      this.#options.retryMaxMs,
+    );
     record.nextAttemptAt = Date.now() + delay;
   }
 
@@ -699,10 +754,21 @@ export class Gateway {
             summary: summarizeReadings(readings, lot),
             seal: evidence,
             ...(record.photo
-              ? { photo: { mime: record.photo.mime, bytes: new Uint8Array(Buffer.from(record.photo.base64, 'base64')) } }
+              ? {
+                  photo: {
+                    mime: record.photo.mime,
+                    bytes: new Uint8Array(Buffer.from(record.photo.base64, 'base64')),
+                  },
+                }
               : {}),
-            anchor: { present: Boolean(record.anchor), ...(record.anchor ? { venueId: record.anchor.venueId } : {}) },
-            geofence: { proven: window.at(-1)?.proof === 'published', ...(record.venueId ? { venueId: record.venueId } : {}) },
+            anchor: {
+              present: Boolean(record.anchor),
+              ...(record.anchor ? { venueId: record.anchor.venueId } : {}),
+            },
+            geofence: {
+              proven: window.at(-1)?.proof === 'published',
+              ...(record.venueId ? { venueId: record.venueId } : {}),
+            },
           });
         } catch (error) {
           if (!(error instanceof ZgUnavailable)) throw error;
@@ -764,7 +830,10 @@ export class Gateway {
           seal: { record: record.sealRecord, ...(record.photo ? { photo: record.photo } : {}) },
           ...(record.anchor ? { anchor: { payload: record.anchor.payload, sig: record.anchor.sig } } : {}),
           readings: window.map(({ payload, sig }) => ({ payload, sig })),
-          summary: summarizeReadings(window.map((r) => decodeReading(fromHex(r.payload))), lot),
+          summary: summarizeReadings(
+            window.map((r) => decodeReading(fromHex(r.payload))),
+            lot,
+          ),
           failedAttempts: record.failedAttempts.map(({ at, error }) => ({ at, error })),
           decision: {
             source: decision.source,
@@ -798,11 +867,19 @@ export class Gateway {
         );
         record.stage = 'ATTESTED';
         this.store.touch();
-        this.#log('checkpoint.attested', { id: record.id, episodeRoot: stored.root, store: this.episodes.kind });
+        this.#log('checkpoint.attested', {
+          id: record.id,
+          episodeRoot: stored.root,
+          store: this.episodes.kind,
+        });
       }
 
       if (record.stage === 'ATTESTED') {
-        const { entityKey } = await this.arkiv.createCheckpoint(record.device, this.#decidedInput(record), this.#lifetimes(lot));
+        const { entityKey } = await this.arkiv.createCheckpoint(
+          record.device,
+          this.#decidedInput(record),
+          this.#lifetimes(lot),
+        );
         record.arkivKey = entityKey;
         record.stage = 'PUBLISHED';
         this.store.touch();
@@ -822,7 +899,12 @@ export class Gateway {
           record.error = `Hedera applied ${outcomeName(applied.outcome)}, expected ${record.outcome}`;
         }
         // The receipt is issued the first time a venue accepts custody of the goods.
-        if (applied.stateAfter === LotState.IN_CUSTODY && applied.outcome === Outcome.ACCEPTED && !lot.issued && lot.depositor) {
+        if (
+          applied.stateAfter === LotState.IN_CUSTODY &&
+          applied.outcome === Outcome.ACCEPTED &&
+          !lot.issued &&
+          lot.depositor
+        ) {
           await this.hedera.onboardInvestor(lot.token, lot.depositor);
           await this.hedera.issue(lot.token, lot.depositor, lot.units);
           lot.issued = true;
@@ -888,7 +970,11 @@ export class Gateway {
         ...(typeof decision.teeVerified === 'boolean' ? { teeVerified: decision.teeVerified } : {}),
       },
       ...(record.breachReading
-        ? { breachReading: toHex(concat(fromHex(record.breachReading.payload), fromHex(record.breachReading.sig))) }
+        ? {
+            breachReading: toHex(
+              concat(fromHex(record.breachReading.payload), fromHex(record.breachReading.sig)),
+            ),
+          }
         : {}),
     };
   }

@@ -30,7 +30,11 @@ export async function probeBoard(
   const info = await board.info();
   const rows: ProbeRow[] = [];
   const digest = sha256(randomBytes(32));
-  const check = async (part: string, present: boolean, run: () => Promise<string | { ok: boolean; detail: string }>) => {
+  const check = async (
+    part: string,
+    present: boolean,
+    run: () => Promise<string | { ok: boolean; detail: string }>,
+  ) => {
     if (!present) return void rows.push({ part, ok: null, detail: 'not detected' });
     try {
       const result = await run();
@@ -52,7 +56,8 @@ export async function probeBoard(
         const age = gps.age_ms === undefined ? '' : `, ${(gps.age_ms / 1000).toFixed(1)} s old`;
         return `fix ${(gps.lat_e7 / 1e7).toFixed(7)}, ${(gps.lon_e7 / 1e7).toFixed(7)} (${gps.sats ?? '?'} satellites${age})`;
       }
-      if (gps.chars === 0) return { ok: false, detail: 'nothing received from the module — check RX/TX and the baud rate' };
+      if (gps.chars === 0)
+        return { ok: false, detail: 'nothing received from the module — check RX/TX and the baud rate' };
       return `module is talking, no fix yet (${gps.sats ?? 0} satellites) — it needs open sky`;
     });
 
@@ -63,12 +68,16 @@ export async function probeBoard(
         publicKey = await element.publicKey();
       } catch (error) {
         if (/not provisioned/.test(reason(error))) {
-          return { ok: false, detail: 'found, but blank — provision it once with `pnpm device provision-se` (irreversible)' };
+          return {
+            ok: false,
+            detail: 'found, but blank — provision it once with `pnpm device provision-se` (irreversible)',
+          };
         }
         throw error;
       }
       const signature = await element.sign(digest);
-      if (!p256Verify(digest, signature, publicKey)) return { ok: false, detail: 'its signature does not verify against its public key' };
+      if (!p256Verify(digest, signature, publicKey))
+        return { ok: false, detail: 'its signature does not verify against its public key' };
       return `serial ${await element.serial()}, signs and verifies (P-256)`;
     });
 
@@ -76,7 +85,8 @@ export async function probeBoard(
       const wallet = new BoardWallet(board);
       const address = await wallet.address();
       const signature = await wallet.signDigest(digest);
-      if (secpRecover(digest, signature).address !== address) return { ok: false, detail: 'signature does not recover to the wallet' };
+      if (secpRecover(digest, signature).address !== address)
+        return { ok: false, detail: 'signature does not recover to the wallet' };
       return `address ${address}, signs and recovers (secp256k1)`;
     });
 
@@ -101,34 +111,41 @@ export async function probeBoard(
     });
   }
 
-  await check(info.role === 'anchor' ? 'venue anchor' : 'venue anchor (over BLE)', info.has.anchor, async () => {
-    const device = `0x${'00'.repeat(19)}01` as Hex;
-    const blockhash = toHex(digest);
-    let venue = '';
-    if (info.role === 'anchor') {
-      try {
-        const about = await board.request('anchor.info');
-        venue = `venue ${about.venue_id}, address ${addressFromPublicKey(fromHex(`0x${about.pubkey}`, 64))}, `;
-      } catch (error) {
-        if (/no venue/.test(reason(error))) {
-          return { ok: false, detail: 'no venue set — run `pnpm device anchor-setup --venue <ID>`' };
+  await check(
+    info.role === 'anchor' ? 'venue anchor' : 'venue anchor (over BLE)',
+    info.has.anchor,
+    async () => {
+      const device = `0x${'00'.repeat(19)}01` as Hex;
+      const blockhash = toHex(digest);
+      let venue = '';
+      if (info.role === 'anchor') {
+        try {
+          const about = await board.request('anchor.info');
+          venue = `venue ${about.venue_id}, address ${addressFromPublicKey(fromHex(`0x${about.pubkey}`, 64))}, `;
+        } catch (error) {
+          if (/no venue/.test(reason(error))) {
+            return { ok: false, detail: 'no venue set — run `pnpm device anchor-setup --venue <ID>`' };
+          }
+          throw error;
         }
-        throw error;
       }
-    }
-    let problem = '';
-    const attestation = await new BoardAnchor(board, { onProblem: (why) => (problem = why) }).attest({ device, blockhash });
-    if (!attestation) {
-      // For a device, "no anchor in range" is an answer, not a fault.
-      const outOfRange = /no anchor in range/.test(problem);
-      return { ok: outOfRange, detail: outOfRange ? 'radio works; no anchor in range right now' : problem };
-    }
-    const verified = verifyAnchorAttestation(attestation);
-    if (verified.attestation.device !== device || verified.attestation.blockhash !== blockhash) {
-      return { ok: false, detail: 'the anchor signed something other than what was asked' };
-    }
-    return `${venue || `venue ${verified.attestation.venueId}, signer ${verified.signer}, `}co-signs (counter ${verified.attestation.counter})`;
-  });
+      let problem = '';
+      const attestation = await new BoardAnchor(board, { onProblem: (why) => (problem = why) }).attest({
+        device,
+        blockhash,
+      });
+      if (!attestation) {
+        // For a device, "no anchor in range" is an answer, not a fault.
+        const outOfRange = /no anchor in range/.test(problem);
+        return { ok: outOfRange, detail: outOfRange ? 'radio works; no anchor in range right now' : problem };
+      }
+      const verified = verifyAnchorAttestation(attestation);
+      if (verified.attestation.device !== device || verified.attestation.blockhash !== blockhash) {
+        return { ok: false, detail: 'the anchor signed something other than what was asked' };
+      }
+      return `${venue || `venue ${verified.attestation.venueId}, signer ${verified.signer}, `}co-signs (counter ${verified.attestation.counter})`;
+    },
+  );
 
   return { info, rows };
 }

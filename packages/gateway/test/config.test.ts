@@ -28,7 +28,11 @@ describe('gateway configuration', () => {
       factory: '0xd1F118A40f3b02883D35909eF2517e7EDd78379d',
       explorerUrl: 'https://hashscan.io/testnet',
     });
-    expect(config.zg).toMatchObject({ routerUrl: 'https://router-api.0g.ai/v1', model: 'some-vision-model', verifyTee: false });
+    expect(config.zg).toMatchObject({
+      routerUrl: 'https://router-api.0g.ai/v1',
+      model: 'some-vision-model',
+      verifyTee: false,
+    });
     expect(config.arkiv).toEqual({});
     expect(config.geofenceProofs).toBe(true);
     expect(config.demo).toBe(false);
@@ -56,15 +60,21 @@ describe('gateway configuration', () => {
   });
 
   it('treats an empty value as not set, as a copied .env.example leaves them', () => {
-    expect(readConfig({ ...complete, ARKIV_RPC_URL: '', HEDERA_RPC_URL: '', ADMIN_TOKEN: '' })).toMatchObject({
-      hedera: { rpcUrl: 'https://testnet.hashio.io/api' },
-    });
+    expect(readConfig({ ...complete, ARKIV_RPC_URL: '', HEDERA_RPC_URL: '', ADMIN_TOKEN: '' })).toMatchObject(
+      {
+        hedera: { rpcUrl: 'https://testnet.hashio.io/api' },
+      },
+    );
     expect(() => readConfig({ ...complete, ZG_MODEL: '' })).toThrow(/ZG_MODEL is not set/);
   });
 
   it('lets a command ask for only the part it needs, keeping the defaults', () => {
     const config = readConfig({ HEDERA_ISSUER_KEY: KEY('44') }, ['HEDERA_ISSUER_KEY']);
-    expect(config.hedera).toMatchObject({ rpcUrl: 'https://testnet.hashio.io/api', chainId: 296, issuerKey: KEY('44') });
+    expect(config.hedera).toMatchObject({
+      rpcUrl: 'https://testnet.hashio.io/api',
+      chainId: 296,
+      issuerKey: KEY('44'),
+    });
     expect(() => readConfig({}, ['HEDERA_ISSUER_KEY'])).toThrow(/HEDERA_ISSUER_KEY is not set/);
   });
 
@@ -74,8 +84,18 @@ describe('gateway configuration', () => {
     expect(publicArkivRpcUrl(withKey)).toMatch(/^https:\/\//);
     expect(publicArkivRpcUrl(withKey)).not.toContain(secret);
     // An operator can name the endpoint browsers should use; a custom node has no key to hide.
-    expect(publicArkivRpcUrl(readConfig({ ...complete, ARKIV_ACCESS_KEY: secret, ARKIV_PUBLIC_RPC_URL: 'https://arkiv.example/rpc' }))).toBe('https://arkiv.example/rpc');
-    expect(publicArkivRpcUrl(readConfig({ ...complete, ARKIV_RPC_URL: 'http://127.0.0.1:8645' }))).toBe('http://127.0.0.1:8645');
+    expect(
+      publicArkivRpcUrl(
+        readConfig({
+          ...complete,
+          ARKIV_ACCESS_KEY: secret,
+          ARKIV_PUBLIC_RPC_URL: 'https://arkiv.example/rpc',
+        }),
+      ),
+    ).toBe('https://arkiv.example/rpc');
+    expect(publicArkivRpcUrl(readConfig({ ...complete, ARKIV_RPC_URL: 'http://127.0.0.1:8645' }))).toBe(
+      'http://127.0.0.1:8645',
+    );
   });
 
   it('reads overrides and flags', () => {
@@ -88,7 +108,12 @@ describe('gateway configuration', () => {
       ARKIV_RPC_URL: 'http://127.0.0.1:8645',
       ARKIV_CHAIN_ID: '1337',
     });
-    expect(config).toMatchObject({ port: 9000, demo: true, geofenceProofs: false, arkiv: { rpcUrl: 'http://127.0.0.1:8645', chainId: 1337 } });
+    expect(config).toMatchObject({
+      port: 9000,
+      demo: true,
+      geofenceProofs: false,
+      arkiv: { rpcUrl: 'http://127.0.0.1:8645', chainId: 1337 },
+    });
     expect(config.zg.verifyTee).toBe(true);
   });
 });

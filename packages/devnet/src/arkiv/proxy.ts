@@ -89,10 +89,18 @@ export async function startProxy(options: ProxyOptions): Promise<Proxy> {
         return {
           jsonrpc: '2.0',
           id,
-          error: { code: error.code, message: error.message, ...(error.data !== undefined && { data: error.data }) },
+          error: {
+            code: error.code,
+            message: error.message,
+            ...(error.data !== undefined && { data: error.data }),
+          },
         };
       }
-      return { jsonrpc: '2.0', id, error: { code: -32603, message: error instanceof Error ? error.message : String(error) } };
+      return {
+        jsonrpc: '2.0',
+        id,
+        error: { code: -32603, message: error instanceof Error ? error.message : String(error) },
+      };
     }
   }
 
@@ -144,7 +152,11 @@ export async function startProxy(options: ProxyOptions): Promise<Proxy> {
       return;
     }
     if (request.method === 'GET') {
-      send(response, 200, { name: 'arkiv-devnet', chainId, note: 'local stand-in for an Arkiv node; POST JSON-RPC here' });
+      send(response, 200, {
+        name: 'arkiv-devnet',
+        chainId,
+        note: 'local stand-in for an Arkiv node; POST JSON-RPC here',
+      });
       return;
     }
     if (request.method !== 'POST') {

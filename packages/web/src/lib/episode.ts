@@ -3,7 +3,14 @@
  * the seal photo and the model's full answer are in an encrypted episode log on 0G Storage,
  * readable with the lot's view key.
  */
-import { type EpisodeLog, type Hex, decodeReading, fromHex, openEpisode, verifyReading } from '@pinky/protocol';
+import {
+  type EpisodeLog,
+  type Hex,
+  decodeReading,
+  fromHex,
+  openEpisode,
+  verifyReading,
+} from '@pinky/protocol';
 import type { Context } from './config';
 
 export type RawReading = { seq: number; ts: number; tempCenti: number; rhCenti: number };

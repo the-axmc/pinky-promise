@@ -3,7 +3,12 @@
  * have the shape the real node uses. The expectations here were taken from responses of the
  * Rabdi testnet (https://rpc.rabdi.db-chain.testnet.arkiv.network) for the same requests.
  */
-import { ExpirationTime, NoEntityFoundError, createPublicClient, createWalletClient } from '@arkiv-network/sdk';
+import {
+  ExpirationTime,
+  NoEntityFoundError,
+  createPublicClient,
+  createWalletClient,
+} from '@arkiv-network/sdk';
 import { eq } from '@arkiv-network/sdk/query';
 import { addr, bool, bytes, dec, defineSchema, i32, key, str, u64, u256 } from '@arkiv-network/sdk/schema';
 import { type Hex, http, stringToBytes, toHex } from 'viem';
@@ -62,7 +67,9 @@ beforeAll(async () => {
     ref: key(refKey),
     blob: stringToBytes('blob'),
   });
-  const created = await wallet.createEntity(Sample, values('first', -3), { expiration: ExpirationTime.fromBlocks(5000) });
+  const created = await wallet.createEntity(Sample, values('first', -3), {
+    expiration: ExpirationTime.fromBlocks(5000),
+  });
   entityKey = created.entityKey;
   expiresAt = created.expiresAt;
   createdAt = (await reader.getTransactionReceipt({ hash: created.txHash })).blockNumber;
@@ -88,7 +95,10 @@ describe('arkiv_query response', () => {
       attributes: true,
       count: true,
     };
-    const { result } = await call('arkiv_query', [`${TAG} AND label = str('first')`, { select, limit: '0x2' }]);
+    const { result } = await call('arkiv_query', [
+      `${TAG} AND label = str('first')`,
+      { select, limit: '0x2' },
+    ]);
 
     expect(Object.keys(result)).toEqual(['data', 'blockNumber', 'count']);
     expect(result.count).toBe('0x1');
@@ -178,7 +188,9 @@ describe('arkiv_query response', () => {
     const select = { attributes: { label: true } };
     const labels = (answer: any) => answer.result.data.map((e: any) => e.attributes[0].value);
     expect(labels(await call('arkiv_query', [order, { select, limit: '0x2' }]))).toEqual(['first', 'second']);
-    expect(labels(await call('arkiv_query', [order, { select, limit: '0x2', offset: '0x2' }]))).toEqual(['third']);
+    expect(labels(await call('arkiv_query', [order, { select, limit: '0x2', offset: '0x2' }]))).toEqual([
+      'third',
+    ]);
     const past = await call('arkiv_query', [order, { select: { key: true, count: true }, offset: '0xffff' }]);
     expect(past.result.data).toEqual([]);
     expect(past.result.count).toBe('0x3');
@@ -225,7 +237,8 @@ describe('arkiv_query errors', () => {
     });
     expect(await failure(`${TAG} ORDER BY small`)).toMatchObject({
       code: -32002,
-      message: 'small can hold any type, so ORDER BY names the one to sort it as — write ORDER BY small:str, or another tag',
+      message:
+        'small can hold any type, so ORDER BY names the one to sort it as — write ORDER BY small:str, or another tag',
     });
     expect((await failure(`${TAG} AND small STARTSWITH i32(1)`))?.code).toBe(-32002);
     expect((await failure(`$owner = str('alice')`))?.code).toBe(-32002);
@@ -256,14 +269,17 @@ describe('arkiv_query errors', () => {
   });
 
   it('accepts what the language allows beyond what the SDK writes', async () => {
-    const count = async (query: string) => (await call('arkiv_query', [query, { select: { count: true } }])).result?.count;
+    const count = async (query: string) =>
+      (await call('arkiv_query', [query, { select: { count: true } }])).result?.count;
     expect(await count(`${TAG} AND small = -3`)).toBe('0x1'); // a bare number is an i32
     expect(await count(`${TAG} and exists(label) -- lowercase keywords and a comment`)).toBe('0x3');
     expect(await count(`${TAG} AND big = u256(0x400000000000000000)`)).toBe('0x3'); // u256 in hex
     expect(await count(`${TAG} AND label = str('it''s')`)).toBe('0x0'); // doubled quote
     expect(await count(`${TAG} AND flag STARTSWITH str('a')`)).toBe('0x0'); // wrong attribute type: no match, no error
     expect(await count(`${TAG} AND TYPEOF(small) = i32 AND TYPEOF(small) = u64`)).toBe('0x0');
-    expect(await count(`${TAG} AND $expiresAt > u64(1) AND $creator = addr(${alice.address.toLowerCase()})`)).toBe('0x3');
+    expect(
+      await count(`${TAG} AND $expiresAt > u64(1) AND $creator = addr(${alice.address.toLowerCase()})`),
+    ).toBe('0x3');
     expect(await count(`$key = key(${entityKey})`)).toBe('0x1');
   });
 });
@@ -303,11 +319,16 @@ describe('proxy', () => {
     expect((await call('eth_chainId')).result).toBe('0x539');
     // entityNonce(address): selector 0x36917bfd, as in the write-transaction documentation.
     const nonce = await call('eth_call', [
-      { to: '0x4400000000000000000000000000000000000044', data: `0x36917bfd000000000000000000000000${alice.address.slice(2)}` },
+      {
+        to: '0x4400000000000000000000000000000000000044',
+        data: `0x36917bfd000000000000000000000000${alice.address.slice(2)}`,
+      },
       'latest',
     ]);
     expect(BigInt(nonce.result)).toBe(3n);
-    expect((await call('eth_getCode', ['0x4400000000000000000000000000000000000044', 'latest'])).result.length).toBeGreaterThan(1000);
+    expect(
+      (await call('eth_getCode', ['0x4400000000000000000000000000000000000044', 'latest'])).result.length,
+    ).toBeGreaterThan(1000);
   });
 
   it('answers a batch that mixes arkiv_* and standard calls, in request order', async () => {
@@ -328,14 +349,21 @@ describe('proxy', () => {
   });
 
   it('accepts a URL with a path segment, as Rabdi URLs carry an access key', async () => {
-    const answer = await post({ jsonrpc: '2.0', id: 1, method: 'arkiv_query', params: [TAG, { select: { count: true } }] }, `${devnet.rpcUrl}/some-access-key`);
+    const answer = await post(
+      { jsonrpc: '2.0', id: 1, method: 'arkiv_query', params: [TAG, { select: { count: true } }] },
+      `${devnet.rpcUrl}/some-access-key`,
+    );
     expect(answer.result.count).toBe('0x3');
   });
 
   it('allows browsers: answers the CORS preflight and sets the header on responses', async () => {
     const preflight = await fetch(devnet.rpcUrl, {
       method: 'OPTIONS',
-      headers: { origin: 'http://localhost:5173', 'access-control-request-method': 'POST', 'access-control-request-headers': 'content-type' },
+      headers: {
+        origin: 'http://localhost:5173',
+        'access-control-request-method': 'POST',
+        'access-control-request-headers': 'content-type',
+      },
     });
     expect(preflight.status).toBe(204);
     expect(preflight.headers.get('access-control-allow-origin')).toBe('*');
@@ -349,7 +377,11 @@ describe('proxy', () => {
   });
 
   it('answers malformed JSON with a JSON-RPC parse error', async () => {
-    const response = await fetch(devnet.rpcUrl, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{not json' });
+    const response = await fetch(devnet.rpcUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{not json',
+    });
     expect(((await response.json()) as any).error.code).toBe(-32700);
   });
 });
@@ -364,7 +396,11 @@ describe('interval mining', () => {
       const reader = createPublicClient({ chain: timed.chain, transport: http() });
       const Ticks = defineSchema('test.ticks', { name: str().indexed() });
 
-      const created = await wallet.createEntity(Ticks, { name: 'short' }, { expiration: ExpirationTime.fromBlocks(3) });
+      const created = await wallet.createEntity(
+        Ticks,
+        { name: 'short' },
+        { expiration: ExpirationTime.fromBlocks(3) },
+      );
       expect(await reader.count().from(Ticks).where(eq('name', 'short')).fetch()).toBe(1n);
 
       // No explicit mining here: the chain produces a block every second.

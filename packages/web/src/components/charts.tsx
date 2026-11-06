@@ -20,9 +20,10 @@ export function ReadingStrip({ readings, handoffs }: { readings: StripReading[];
   if (readings.length === 0) return <p className="muted">No readings yet.</p>;
 
   // Readings and handoffs share one sequence, so order them together on an even grid.
-  const slots = [...readings.map((r) => ({ seq: r.seq, kind: 'reading' as const })), ...handoffs.map((h) => ({ seq: h.seq, kind: 'handoff' as const }))].sort(
-    (a, b) => a.seq - b.seq,
-  );
+  const slots = [
+    ...readings.map((r) => ({ seq: r.seq, kind: 'reading' as const })),
+    ...handoffs.map((h) => ({ seq: h.seq, kind: 'handoff' as const })),
+  ].sort((a, b) => a.seq - b.seq);
   const step = 34;
   const left = 20;
   const width = left * 2 + Math.max(1, slots.length - 1) * step;
@@ -32,7 +33,13 @@ export function ReadingStrip({ readings, handoffs }: { readings: StripReading[];
   return (
     <figure className="viz">
       <div className="viz-scroll">
-        <svg viewBox={`0 0 ${width} 86`} width={width} height={86} role="img" aria-label={`${readings.length} readings in order; ${readings.filter((r) => !r.inRange).length} outside limits`}>
+        <svg
+          viewBox={`0 0 ${width} 86`}
+          width={width}
+          height={86}
+          role="img"
+          aria-label={`${readings.length} readings in order; ${readings.filter((r) => !r.inRange).length} outside limits`}
+        >
           <line x1={left} x2={width - left} y1={52} y2={52} className="viz-axis" />
           {handoffs.map((handoff) => (
             <g key={`h${handoff.seq}`}>
@@ -45,7 +52,14 @@ export function ReadingStrip({ readings, handoffs }: { readings: StripReading[];
           {readings.map((reading) => {
             const x = xOf(reading.seq);
             return (
-              <g key={reading.seq} onMouseEnter={() => setHover(reading.seq)} onMouseLeave={() => setHover(null)} onFocus={() => setHover(reading.seq)} onBlur={() => setHover(null)} tabIndex={0}>
+              <g
+                key={reading.seq}
+                onMouseEnter={() => setHover(reading.seq)}
+                onMouseLeave={() => setHover(null)}
+                onFocus={() => setHover(reading.seq)}
+                onBlur={() => setHover(null)}
+                tabIndex={0}
+              >
                 {/* The hit target is larger than the mark. */}
                 <rect x={x - step / 2} y={26} width={step} height={56} fill="transparent" />
                 {reading.inRange ? (
@@ -53,10 +67,14 @@ export function ReadingStrip({ readings, handoffs }: { readings: StripReading[];
                 ) : (
                   <g className="mark-critical">
                     <circle cx={x} cy={52} r={hover === reading.seq ? 9 : 8} />
-                    <path d={`M${x - 3.5} ${52 - 3.5} L${x + 3.5} ${52 + 3.5} M${x + 3.5} ${52 - 3.5} L${x - 3.5} ${52 + 3.5}`} />
+                    <path
+                      d={`M${x - 3.5} ${52 - 3.5} L${x + 3.5} ${52 + 3.5} M${x + 3.5} ${52 - 3.5} L${x - 3.5} ${52 + 3.5}`}
+                    />
                   </g>
                 )}
-                {reading.hasProof ? <rect x={x - 3} y={34} width={6} height={6} rx={1} className="mark-proof" /> : null}
+                {reading.hasProof ? (
+                  <rect x={x - 3} y={34} width={6} height={6} rx={1} className="mark-proof" />
+                ) : null}
                 <text x={x} y={78} textAnchor="middle" className="viz-tick">
                   {reading.seq}
                 </text>
@@ -99,7 +117,15 @@ export function ReadingStrip({ readings, handoffs }: { readings: StripReading[];
 
 type RawPoint = { seq: number; ts: number; tempCenti: number; rhCenti: number };
 
-export function TemperatureChart({ points, minCenti, maxCenti }: { points: RawPoint[]; minCenti: number; maxCenti: number }) {
+export function TemperatureChart({
+  points,
+  minCenti,
+  maxCenti,
+}: {
+  points: RawPoint[];
+  minCenti: number;
+  maxCenti: number;
+}) {
   const [hover, setHover] = useState<number | null>(null);
   if (points.length === 0) return null;
 
@@ -109,7 +135,8 @@ export function TemperatureChart({ points, minCenti, maxCenti }: { points: RawPo
   const temps = points.map((p) => p.tempCenti);
   const low = Math.min(minCenti, ...temps) - 100;
   const high = Math.max(maxCenti, ...temps) + 100;
-  const x = (index: number) => pad.left + (points.length === 1 ? 0.5 : index / (points.length - 1)) * (width - pad.left - pad.right);
+  const x = (index: number) =>
+    pad.left + (points.length === 1 ? 0.5 : index / (points.length - 1)) * (width - pad.left - pad.right);
   const y = (centi: number) => pad.top + (1 - (centi - low) / (high - low)) * (height - pad.top - pad.bottom);
   const outside = (p: RawPoint) => p.tempCenti < minCenti || p.tempCenti > maxCenti;
   const ticks: number[] = [];
@@ -118,9 +145,20 @@ export function TemperatureChart({ points, minCenti, maxCenti }: { points: RawPo
 
   return (
     <figure className="viz">
-      <svg viewBox={`0 0 ${width} ${height}`} width="100%" role="img" aria-label={`Temperature of ${points.length} readings against the allowed ${celsius(minCenti)} to ${celsius(maxCenti)}`}>
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        width="100%"
+        role="img"
+        aria-label={`Temperature of ${points.length} readings against the allowed ${celsius(minCenti)} to ${celsius(maxCenti)}`}
+      >
         {/* The allowed band: neutral, behind everything, labelled at its edges. */}
-        <rect x={pad.left} y={y(maxCenti)} width={width - pad.left - pad.right} height={y(minCenti) - y(maxCenti)} className="viz-band" />
+        <rect
+          x={pad.left}
+          y={y(maxCenti)}
+          width={width - pad.left - pad.right}
+          height={y(minCenti) - y(maxCenti)}
+          className="viz-band"
+        />
         {ticks.map((value) => (
           <g key={value}>
             <line x1={pad.left} x2={width - pad.right} y1={y(value)} y2={y(value)} className="viz-grid" />
@@ -136,7 +174,9 @@ export function TemperatureChart({ points, minCenti, maxCenti }: { points: RawPo
           min {celsius(minCenti)}
         </text>
         <polyline points={points.map((p, i) => `${x(i)},${y(p.tempCenti)}`).join(' ')} className="viz-line" />
-        {active && hover !== null ? <line x1={x(hover)} x2={x(hover)} y1={pad.top} y2={height - pad.bottom} className="viz-crosshair" /> : null}
+        {active && hover !== null ? (
+          <line x1={x(hover)} x2={x(hover)} y1={pad.top} y2={height - pad.bottom} className="viz-crosshair" />
+        ) : null}
         {points.map((p, i) =>
           outside(p) ? (
             <g key={p.seq} className="mark-critical">
@@ -147,7 +187,13 @@ export function TemperatureChart({ points, minCenti, maxCenti }: { points: RawPo
               </text>
             </g>
           ) : (
-            <circle key={p.seq} cx={x(i)} cy={y(p.tempCenti)} r={hover === i ? 5.5 : 4} className="viz-point" />
+            <circle
+              key={p.seq}
+              cx={x(i)}
+              cy={y(p.tempCenti)}
+              r={hover === i ? 5.5 : 4}
+              className="viz-point"
+            />
           ),
         )}
         {points.map((p, i) => (

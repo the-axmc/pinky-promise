@@ -11,7 +11,13 @@
  */
 import { hexToBytes } from 'viem';
 import { type Comparable, type StoredEntity, type TypeTag, comparableOf, compareValues } from '../model';
-import { type ComparisonOperator, type Condition, type OrderBy, SYSTEM_FIELD_TYPES, canonicalType } from './parser';
+import {
+  type ComparisonOperator,
+  type Condition,
+  type OrderBy,
+  SYSTEM_FIELD_TYPES,
+  canonicalType,
+} from './parser';
 
 function satisfies(order: number, operator: ComparisonOperator): boolean {
   switch (operator) {
@@ -103,7 +109,10 @@ export function sortEntities(entities: StoredEntity[], orderBy: OrderBy | undefi
   const inCreationOrder = [...entities].sort((a, b) => a.sequence - b.sequence);
   if (orderBy === undefined) return inCreationOrder;
 
-  const keyed = inCreationOrder.map((entity) => ({ entity, value: sortValue(entity, orderBy.name, orderBy.type) }));
+  const keyed = inCreationOrder.map((entity) => ({
+    entity,
+    value: sortValue(entity, orderBy.name, orderBy.type),
+  }));
   const sign = orderBy.direction === 'asc' ? 1 : -1;
   // Array.prototype.sort is stable, so ties keep the creation order established above.
   keyed.sort((a, b) => {

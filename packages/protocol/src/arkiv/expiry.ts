@@ -28,7 +28,10 @@ export function registryExpiration() {
  * the deadline is absolute, every reading of a lot expires at the same moment however late in
  * the journey it was written.
  */
-export function shipmentExpiration(lot: { endsAt: number; disputeWindowS: number }, nowS = Date.now() / 1000) {
+export function shipmentExpiration(
+  lot: { endsAt: number; disputeWindowS: number },
+  nowS = Date.now() / 1000,
+) {
   return ExpirationTime.fromSeconds(lifetimeSeconds(lot.endsAt + lot.disputeWindowS - nowS));
 }
 

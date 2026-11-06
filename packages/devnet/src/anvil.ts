@@ -41,7 +41,10 @@ export async function rpc<T = unknown>(url: string, method: string, params: unkn
 }
 
 /** Sends many calls in one HTTP request. Throws on the first error. */
-export async function rpcBatch(url: string, calls: Array<{ method: string; params: unknown[] }>): Promise<void> {
+export async function rpcBatch(
+  url: string,
+  calls: Array<{ method: string; params: unknown[] }>,
+): Promise<void> {
   if (calls.length === 0) return;
   const response = await fetch(url, {
     method: 'POST',
@@ -63,7 +66,9 @@ export async function startAnvil(options: AnvilOptions = {}): Promise<AnvilInsta
   try {
     child = spawn('anvil', args, { stdio: ['ignore', options.verbose ? 'inherit' : 'ignore', 'pipe'] });
   } catch {
-    throw new Error('could not start anvil. Install Foundry: https://book.getfoundry.sh/getting-started/installation');
+    throw new Error(
+      'could not start anvil. Install Foundry: https://book.getfoundry.sh/getting-started/installation',
+    );
   }
   let stderr = '';
   child.stderr?.on('data', (chunk) => (stderr += chunk));
@@ -71,11 +76,15 @@ export async function startAnvil(options: AnvilOptions = {}): Promise<AnvilInsta
     child.once('error', (error: NodeJS.ErrnoException) =>
       reject(
         error.code === 'ENOENT'
-          ? new Error('anvil not found on PATH. Install Foundry: https://book.getfoundry.sh/getting-started/installation')
+          ? new Error(
+              'anvil not found on PATH. Install Foundry: https://book.getfoundry.sh/getting-started/installation',
+            )
           : error,
       ),
     );
-    child.once('exit', (code) => reject(new Error(`anvil exited with code ${code}: ${stderr.trim().slice(-400)}`)));
+    child.once('exit', (code) =>
+      reject(new Error(`anvil exited with code ${code}: ${stderr.trim().slice(-400)}`)),
+    );
   });
   failed.catch(() => {});
 

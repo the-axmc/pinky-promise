@@ -132,7 +132,10 @@ export function p256Sign(digest: Uint8Array, secret: Uint8Array): Uint8Array {
 export function p256Verify(digest: Uint8Array, signature: Uint8Array, publicKey: Uint8Array): boolean {
   if (digest.length !== 32 || signature.length !== 64 || publicKey.length !== 64) return false;
   try {
-    return p256.verify(signature, digest, concat(Uint8Array.of(4), publicKey), { prehash: false, lowS: false });
+    return p256.verify(signature, digest, concat(Uint8Array.of(4), publicKey), {
+      prehash: false,
+      lowS: false,
+    });
   } catch {
     return false;
   }

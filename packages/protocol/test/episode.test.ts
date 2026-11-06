@@ -44,7 +44,10 @@ describe('reading summary', () => {
   });
 
   it('is zero-excursion when everything is in range, and refuses an empty window', () => {
-    expect(summarizeReadings(readings.slice(0, 2), thresholds)).toMatchObject({ outOfRange: 0, worstTempExcursionC: 0 });
+    expect(summarizeReadings(readings.slice(0, 2), thresholds)).toMatchObject({
+      outOfRange: 0,
+      worstTempExcursionC: 0,
+    });
     expect(() => summarizeReadings([], thresholds)).toThrow(ProtocolError);
   });
 });
@@ -81,7 +84,11 @@ describe('episode encryption', () => {
       assetId: 'LOT-42',
       device: vectors.keys.device.address,
       thresholds,
-      checkpoint: { id: vectors.checkpoint.digest, payload: vectors.checkpoint.payload, sig: vectors.checkpoint.sig },
+      checkpoint: {
+        id: vectors.checkpoint.digest,
+        payload: vectors.checkpoint.payload,
+        sig: vectors.checkpoint.sig,
+      },
       seal: { record: vectors.seal.text },
       readings: vectors.readings.map(({ payload, sig }) => ({ payload, sig })),
       summary: summarizeReadings(readings, thresholds),

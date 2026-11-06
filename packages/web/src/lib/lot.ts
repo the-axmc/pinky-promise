@@ -3,7 +3,14 @@
  * device and venues, readings, custody records and geofence proofs from Arkiv; custody state
  * and token figures from Hedera. Each item carries the result of its own checks.
  */
-import { type Address, type Hex, LotState, type LotStateValue, assetIdToBytes32, fromHex } from '@pinky/protocol';
+import {
+  type Address,
+  type Hex,
+  LotState,
+  type LotStateValue,
+  assetIdToBytes32,
+  fromHex,
+} from '@pinky/protocol';
 import {
   type CheckpointEntity,
   type DeviceEntity,
@@ -22,7 +29,16 @@ import {
 } from '@pinky/protocol/arkiv';
 import { atsTokenAbi, custodyOracleAbi } from '@pinky/protocol/hedera';
 import type { Context } from './config';
-import { type Check, type DisclosedReading, checkCheckpoint, checkDevice, checkLot, checkProofRecord, checkReading, disclosedBreach } from './verify';
+import {
+  type Check,
+  type DisclosedReading,
+  checkCheckpoint,
+  checkDevice,
+  checkLot,
+  checkProofRecord,
+  checkReading,
+  disclosedBreach,
+} from './verify';
 
 export type LotStateName = keyof typeof LotState;
 export const lotStateName = (value: number): LotStateName =>
@@ -38,7 +54,11 @@ export type OnChain = {
 };
 
 export type ReadingView = ReadingEntity & { checks: Check[]; venue?: VenueEntity; proof?: GeoProofEntity };
-export type CheckpointView = CheckpointEntity & { checks: Check[]; venue?: VenueEntity; disclosed?: DisclosedReading };
+export type CheckpointView = CheckpointEntity & {
+  checks: Check[];
+  venue?: VenueEntity;
+  disclosed?: DisclosedReading;
+};
 export type ProofView = GeoProofEntity & { checks: Check[]; venue?: VenueEntity };
 
 export type LotView = {
@@ -68,7 +88,11 @@ export async function readOnChain(ctx: Context, lot: LotEntity): Promise<OnChain
   });
   if (record.state === 0) return undefined;
   const token = record.token.toLowerCase() as Address;
-  const totalSupply = await ctx.hedera.readContract({ address: token, abi: atsTokenAbi, functionName: 'totalSupply' });
+  const totalSupply = await ctx.hedera.readContract({
+    address: token,
+    abi: atsTokenAbi,
+    functionName: 'totalSupply',
+  });
   return {
     state: lotStateName(record.state as LotStateValue),
     breachOpen: record.breachOpen,
@@ -110,20 +134,34 @@ export async function loadLot(ctx: Context, assetId: string, vkHash: Hex): Promi
       .map((reading) => {
         const venue = reading.venueHash ? venueByHash.get(reading.venueHash) : undefined;
         const proof = proofByReading.get(reading.digest);
-        return { ...reading, checks: checkReading(reading, lot), ...(venue ? { venue } : {}), ...(proof ? { proof } : {}) };
+        return {
+          ...reading,
+          checks: checkReading(reading, lot),
+          ...(venue ? { venue } : {}),
+          ...(proof ? { proof } : {}),
+        };
       }),
     checkpoints: latestPerCheckpoint(checkpointRecords)
       .sort((a, b) => a.seq - b.seq)
       .map((record) => {
         const venue = record.venueHash ? venueByHash.get(record.venueHash) : undefined;
         const disclosed = disclosedBreach(record, lot);
-        return { ...record, checks: checkCheckpoint(record, lot, venues, readings), ...(venue ? { venue } : {}), ...(disclosed ? { disclosed } : {}) };
+        return {
+          ...record,
+          checks: checkCheckpoint(record, lot, venues, readings),
+          ...(venue ? { venue } : {}),
+          ...(disclosed ? { disclosed } : {}),
+        };
       }),
     proofs: proofs
       .sort((a, b) => a.seq - b.seq)
       .map((proof) => {
         const venue = venueByHash.get(proof.venueHash);
-        return { ...proof, checks: checkProofRecord(proof, lot.gateway, vkHash), ...(venue ? { venue } : {}) };
+        return {
+          ...proof,
+          checks: checkProofRecord(proof, lot.gateway, vkHash),
+          ...(venue ? { venue } : {}),
+        };
       }),
     at: Date.now(),
   };
@@ -140,7 +178,11 @@ export async function verifyProof(view: LotView, proof: GeoProofEntity): Promise
   if (!venue) return false;
   const { verifyGeofence } = await import('@pinky/zk/verify');
   return verifyGeofence(
-    { digest: fromHex(proof.readingDigest, 32), publicKey: fromHex(view.device.walletPubkey, 64), box: venue.box },
+    {
+      digest: fromHex(proof.readingDigest, 32),
+      publicKey: fromHex(view.device.walletPubkey, 64),
+      box: venue.box,
+    },
     fromHex(proof.proof),
     { threads: 1 },
   );

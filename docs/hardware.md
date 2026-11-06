@@ -6,11 +6,11 @@ whatever is not wired yet still simulated.
 
 ## Where this stands
 
-| Piece | Status |
-| --- | --- |
-| Host side (`packages/device`): every part as a swappable seam, serial bridge, bring-up probe, CLI | **Tested** — 79 tests, plus the whole custody journey run through the bridge protocol against an in-memory board |
-| Firmware (`firmware/pinky-bridge`) | **Written, not yet compiled or run on a board.** The machine it was written on had no ESP32 toolchain. It passes a syntax/type check against stub headers (see below), which is weaker than a build. Expect to fix small things on first compile. |
-| Any run with physical parts | **Not done.** No hardware was attached. |
+| Piece                                                                                             | Status                                                                                                                                                                                                                                            |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Host side (`packages/device`): every part as a swappable seam, serial bridge, bring-up probe, CLI | **Tested** — 79 tests, plus the whole custody journey run through the bridge protocol against an in-memory board                                                                                                                                  |
+| Firmware (`firmware/pinky-bridge`)                                                                | **Written, not yet compiled or run on a board.** The machine it was written on had no ESP32 toolchain. It passes a syntax/type check against stub headers (see below), which is weaker than a build. Expect to fix small things on first compile. |
+| Any run with physical parts                                                                       | **Not done.** No hardware was attached.                                                                                                                                                                                                           |
 
 The firmware's least certain part is the optional BLE link; its most consequential is the
 one-time ATECC608B provisioning, which cannot be undone. Both are off unless you ask for them.
@@ -38,17 +38,17 @@ talks to the gateway by itself over BLE or WiFi is the next step, described at t
 
 ## The parts
 
-| Part | What it gives the system | How the board finds it | Bridge command |
-| --- | --- | --- | --- |
-| ESP32-S3 board | The device wallet (secp256k1 key, generated on first boot, kept in flash) | always | `wallet.info`, `wallet.sign` |
-| SHT31 breakout | Temperature and humidity of every reading | answers on I2C `0x44` | `climate.read` |
-| GPS module (NEO-M8N or NEO-6M) | Position, committed to in each reading and proven in zero knowledge | NMEA characters arrive on the UART | `gps.read` |
-| Camera (board with a camera connector) | The seal photo the vision model judges at each handoff | camera initialises | `camera.capture` |
-| ATECC608B breakout | Hardware root key: signs the certificate that binds the wallet to this chip | answers on I2C `0x60`, and is provisioned | `se.info`, `se.sign` |
-| PN532 NFC module | Reads an NFC seal tag (NTAG): the same tag is still there, or it is gone | answers on I2C `0x24` | `nfc.read` |
-| Tamper switch (optional) | Whether the device's own case was opened, and how often | cannot be detected: build flag | `enclosure.read` |
-| Second ESP32-S3 | The venue anchor: co-signs a nonce, showing the device was at the venue | flashed with the anchor build | `anchor.attest` |
-| Breadboard, jumpers, two USB-C **data** cables | — | — | — |
+| Part                                           | What it gives the system                                                    | How the board finds it                    | Bridge command               |
+| ---------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------- | ---------------------------- |
+| ESP32-S3 board                                 | The device wallet (secp256k1 key, generated on first boot, kept in flash)   | always                                    | `wallet.info`, `wallet.sign` |
+| SHT31 breakout                                 | Temperature and humidity of every reading                                   | answers on I2C `0x44`                     | `climate.read`               |
+| GPS module (NEO-M8N or NEO-6M)                 | Position, committed to in each reading and proven in zero knowledge         | NMEA characters arrive on the UART        | `gps.read`                   |
+| Camera (board with a camera connector)         | The seal photo the vision model judges at each handoff                      | camera initialises                        | `camera.capture`             |
+| ATECC608B breakout                             | Hardware root key: signs the certificate that binds the wallet to this chip | answers on I2C `0x60`, and is provisioned | `se.info`, `se.sign`         |
+| PN532 NFC module                               | Reads an NFC seal tag (NTAG): the same tag is still there, or it is gone    | answers on I2C `0x24`                     | `nfc.read`                   |
+| Tamper switch (optional)                       | Whether the device's own case was opened, and how often                     | cannot be detected: build flag            | `enclosure.read`             |
+| Second ESP32-S3                                | The venue anchor: co-signs a nonce, showing the device was at the venue     | flashed with the anchor build             | `anchor.attest`              |
+| Breadboard, jumpers, two USB-C **data** cables | —                                                                           | —                                         | —                            |
 
 ### Which board
 
@@ -71,17 +71,17 @@ collide). Pin numbers can be changed with `-D` flags; the defaults are in
 
 ### Seeed XIAO ESP32S3 Sense (device)
 
-| Board pin | GPIO | Connect to |
-| --- | --- | --- |
-| 3V3 | — | VIN/VCC of SHT31, ATECC608B, PN532, GPS |
-| GND | — | GND of everything |
-| D4 | 5 | SDA of SHT31, ATECC608B, PN532 |
-| D5 | 6 | SCL of SHT31, ATECC608B, PN532 |
-| D7 | 44 | **TX** of the GPS module |
-| D6 | 43 | **RX** of the GPS module |
-| D1 | 2 | PN532 IRQ |
-| D3 | 4 | PN532 RSTO / RSTPDN |
-| D0 | 1 | tamper switch, other leg to GND |
+| Board pin   | GPIO    | Connect to                                                 |
+| ----------- | ------- | ---------------------------------------------------------- |
+| 3V3         | —       | VIN/VCC of SHT31, ATECC608B, PN532, GPS                    |
+| GND         | —       | GND of everything                                          |
+| D4          | 5       | SDA of SHT31, ATECC608B, PN532                             |
+| D5          | 6       | SCL of SHT31, ATECC608B, PN532                             |
+| D7          | 44      | **TX** of the GPS module                                   |
+| D6          | 43      | **RX** of the GPS module                                   |
+| D1          | 2       | PN532 IRQ                                                  |
+| D3          | 4       | PN532 RSTO / RSTPDN                                        |
+| D0          | 1       | tamper switch, other leg to GND                            |
 | D8, D9, D10 | 7, 8, 9 | free (optional green / amber / red LEDs through resistors) |
 
 The camera sits on the Sense expansion board and uses none of the header pins. The on-board
@@ -89,16 +89,16 @@ orange LED shows the status.
 
 ### ESP32-S3-DevKitC-1 (anchor, or a device without camera)
 
-| GPIO | Connect to |
-| --- | --- |
-| 3V3, GND | power for the modules |
-| 8 | SDA |
-| 9 | SCL |
-| 18 | **TX** of the GPS module |
-| 17 | **RX** of the GPS module |
-| 5 | PN532 IRQ |
-| 6 | PN532 RSTO |
-| 4 | tamper switch, other leg to GND |
+| GPIO       | Connect to                                                     |
+| ---------- | -------------------------------------------------------------- |
+| 3V3, GND   | power for the modules                                          |
+| 8          | SDA                                                            |
+| 9          | SCL                                                            |
+| 18         | **TX** of the GPS module                                       |
+| 17         | **RX** of the GPS module                                       |
+| 5          | PN532 IRQ                                                      |
+| 6          | PN532 RSTO                                                     |
+| 4          | tamper switch, other leg to GND                                |
 | 10, 11, 12 | green, amber, red status LEDs (each through a resistor to GND) |
 
 An anchor needs no wiring at all: just the board and power.
@@ -129,7 +129,7 @@ pio run -e anchor-xiao-s3 -t upload       # venue anchor on a XIAO
 With the Arduino IDE: open `firmware/pinky-bridge/pinky-bridge/pinky-bridge.ino`, choose the
 board and role at the top of `config.h`, and install the libraries listed in `platformio.ini`
 (ArduinoJson 7, micro-ecc, TinyGPSPlus, SparkFun ATECCX08a, Adafruit PN532, Adafruit BusIO). For
-a XIAO, set *USB CDC On Boot: Enabled* and *PSRAM: OPI PSRAM*.
+a XIAO, set _USB CDC On Boot: Enabled_ and _PSRAM: OPI PSRAM_.
 
 If the first build fails, the error will most likely be in one optional part. Each part has a
 switch (`-DPINKY_HAS_GPS=0`, `-DPINKY_HAS_PN532=0`, …), so you can turn the failing one off, keep
@@ -182,7 +182,7 @@ pnpm device provision-se --port /dev/cu.usbmodem101 --lock-forever
 Before you run it:
 
 - This code path has never been run against a real chip. It calls the SparkFun library's own
-  functions in the order of SparkFun's *Example1_Configuration*; if you want the least risk, run
+  functions in the order of SparkFun's _Example1_Configuration_; if you want the least risk, run
   that example sketch instead — it does the same thing and is widely used — and then come back.
 - Do it **before** you enrol the device anywhere you care about. A device's identity is its
   wallet plus its secure element, fixed at enrolment. If you enrol with the secure element
@@ -235,7 +235,7 @@ pnpm device run    --gateway https://… --port …
   and get no proof; the journey still works, because location authenticity comes from the anchor.
   For a demo indoors, `--sim gps` keeps the position simulated.
 - **Real anchor.** It is treated as the origin warehouse's anchor. Plugged into the host over USB
-  it proves the anchor's key was present at the gateway. Proximity to the *device* needs the BLE
+  it proves the anchor's key was present at the gateway. Proximity to the _device_ needs the BLE
   link below.
 
 ## The anchor over BLE
@@ -260,7 +260,7 @@ What it does not do yet:
 - It does not read the tamper loop of an NTAG 213 TT or NTAG 424 DNA TagTamper; the tamper state
   is always reported as unknown.
 - A plain NTAG's UID can be cloned, so the tag is evidence, not proof.
-- Using an NFC tag as the *venue anchor* (tap the device on a tag bolted to the dock) is not
+- Using an NFC tag as the _venue anchor_ (tap the device on a tag bolted to the dock) is not
   implemented. It would need an NTAG 424 DNA, whose reads carry a cryptographic message the
   gateway can check; a plain NTAG there would prove nothing.
 
@@ -285,13 +285,13 @@ them.
 
 ## Troubleshooting
 
-| Symptom | Likely cause |
-| --- | --- |
-| `the board did not answer within 10000 ms` | Wrong port; a charge-only USB cable; another program (a serial monitor) holding the port; on a XIAO, *USB CDC On Boot* not enabled |
-| No port appears | Hold BOOT while plugging in, flash again |
-| A part is `· not detected` | Power and ground first; then SDA/SCL swapped; for the PN532, the mode switches |
-| `sht31 crc` | Loose wire or long jumpers on the I2C bus |
-| GPS `nothing received` | RX/TX swapped, or the module is at 38400 baud |
-| Every handoff ESCALATEs | Real photos with the stand-in model — use the real 0G model or `--sim camera` |
-| Every handoff reports tampering | `PINKY_HAS_ENCLOSURE=1` with no switch wired, or no seal tag on the PN532 |
-| `enrolled with a different secure element` | The secure element changed after enrolment — see the provisioning section |
+| Symptom                                    | Likely cause                                                                                                                       |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `the board did not answer within 10000 ms` | Wrong port; a charge-only USB cable; another program (a serial monitor) holding the port; on a XIAO, _USB CDC On Boot_ not enabled |
+| No port appears                            | Hold BOOT while plugging in, flash again                                                                                           |
+| A part is `· not detected`                 | Power and ground first; then SDA/SCL swapped; for the PN532, the mode switches                                                     |
+| `sht31 crc`                                | Loose wire or long jumpers on the I2C bus                                                                                          |
+| GPS `nothing received`                     | RX/TX swapped, or the module is at 38400 baud                                                                                      |
+| Every handoff ESCALATEs                    | Real photos with the stand-in model — use the real 0G model or `--sim camera`                                                      |
+| Every handoff reports tampering            | `PINKY_HAS_ENCLOSURE=1` with no switch wired, or no seal tag on the PN532                                                          |
+| `enrolled with a different secure element` | The secure element changed after enrolment — see the provisioning section                                                          |

@@ -23,7 +23,10 @@ export type GeofenceProof = {
  * taken inside `statement.box`. Throws {@link ProtocolError} if that is not true — an
  * out-of-box position, a wrong salt or a foreign signature has no valid witness.
  */
-export async function proveGeofence(statement: GeofenceStatement, witness: GeofenceWitness): Promise<GeofenceProof> {
+export async function proveGeofence(
+  statement: GeofenceStatement,
+  witness: GeofenceWitness,
+): Promise<GeofenceProof> {
   const inputs = circuitInputs(statement, witness);
   let solved: Uint8Array;
   try {
@@ -39,7 +42,10 @@ export async function proveGeofence(statement: GeofenceStatement, witness: Geofe
   // The verifier side rebuilds public inputs from the statement; make sure both agree here,
   // where a mismatch is a bug in this package and not somebody else's invalid proof.
   const expected = publicInputsFor(statement);
-  if (publicInputs.length !== PUBLIC_INPUT_COUNT || publicInputs.some((value, i) => BigInt(value) !== BigInt(expected[i]!))) {
+  if (
+    publicInputs.length !== PUBLIC_INPUT_COUNT ||
+    publicInputs.some((value, i) => BigInt(value) !== BigInt(expected[i]!))
+  ) {
     throw new Error('geofence prover produced unexpected public inputs');
   }
   return { circuit: GEOFENCE_CIRCUIT, vkHash: GEOFENCE_VK_HASH, proof };

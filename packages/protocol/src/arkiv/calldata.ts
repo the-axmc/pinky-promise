@@ -37,7 +37,13 @@ const CREATE_PARAMS = parseAbiParameters(
   '(uint128 salt, uint64 expiresAt, uint64 minLifetime, uint8 creationFlags, (bytes32 name, uint8 typeId, bytes value)[] attributes)',
 );
 
-export const ARKIV_OPERATION = { create: 1, patch: 2, extendExpiry: 3, transferOwnership: 4, delete: 5 } as const;
+export const ARKIV_OPERATION = {
+  create: 1,
+  patch: 2,
+  extendExpiry: 3,
+  transferOwnership: 4,
+  delete: 5,
+} as const;
 
 const TYPE_TAGS: Record<number, ArkivTypeTag> = {
   1: 'bool',
@@ -87,7 +93,8 @@ function attributeName(name: Hex): string {
   let end = bytes.length;
   while (end > 0 && bytes[end - 1] === 0) end--;
   const text = String.fromCharCode(...bytes.subarray(0, end));
-  if (!/^[A-Za-z][A-Za-z0-9._-]*$/.test(text)) throw new ProtocolError('Arkiv attribute name is not a valid identifier');
+  if (!/^[A-Za-z][A-Za-z0-9._-]*$/.test(text))
+    throw new ProtocolError('Arkiv attribute name is not a valid identifier');
   return text;
 }
 
@@ -106,7 +113,8 @@ export function decodePlainValue(type: ArkivTypeTag, value: Hex): PlainAttribute
     }
     case 'i32': {
       const narrowed = BigInt.asIntN(32, word(value, type));
-      if (BigInt.asUintN(256, narrowed) !== BigInt(value)) throw new ProtocolError('Arkiv i32 value is not sign-extended');
+      if (BigInt.asUintN(256, narrowed) !== BigInt(value))
+        throw new ProtocolError('Arkiv i32 value is not sign-extended');
       return Number(narrowed);
     }
     case 'u64': {
@@ -284,7 +292,8 @@ export function encodeCreates(creates: CreateSpec[]): Hex {
     // The engine requires attributes sorted by their encoded name.
     attributes.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
     const creationFlags =
-      (create.readonly ? READONLY_FLAG : 0) | (create.permissionlessExtension ? PERMISSIONLESS_EXTENSION_FLAG : 0);
+      (create.readonly ? READONLY_FLAG : 0) |
+      (create.permissionlessExtension ? PERMISSIONLESS_EXTENSION_FLAG : 0);
     return {
       operation: ARKIV_OPERATION.create,
       operationData: encodeAbiParameters(CREATE_PARAMS, [

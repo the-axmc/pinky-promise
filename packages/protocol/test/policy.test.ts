@@ -80,7 +80,9 @@ describe('custody state machine', () => {
       breachOpen: true,
     });
     // ...and the breach stays on record for the next checkpoint.
-    expect(applyCheckpoint({ ...base, breachOpen: true })).toMatchObject({ outcome: Outcome.BLOCKED_BY_BREACH });
+    expect(applyCheckpoint({ ...base, breachOpen: true })).toMatchObject({
+      outcome: Outcome.BLOCKED_BY_BREACH,
+    });
     expect(applyCheckpoint({ ...base, breachOpen: true, decision: Decision.REJECT })).toMatchObject({
       outcome: Outcome.FROZEN,
       next: LotState.FROZEN,
@@ -120,8 +122,12 @@ describe('custody state machine', () => {
   it('keeps a frozen lot frozen until an inspector releases it', () => {
     const frozen = { ...base, state: LotState.FROZEN, breachOpen: true };
     expect(applyCheckpoint(frozen)).toMatchObject({ ok: false });
-    expect(applyCheckpoint({ ...frozen, decision: Decision.REJECT })).toMatchObject({ next: LotState.FROZEN });
-    expect(applyCheckpoint({ ...frozen, decision: Decision.ESCALATE })).toMatchObject({ next: LotState.FROZEN });
+    expect(applyCheckpoint({ ...frozen, decision: Decision.REJECT })).toMatchObject({
+      next: LotState.FROZEN,
+    });
+    expect(applyCheckpoint({ ...frozen, decision: Decision.ESCALATE })).toMatchObject({
+      next: LotState.FROZEN,
+    });
   });
 
   it('accepts nothing for an unknown or closed lot', () => {

@@ -4,7 +4,9 @@
  */
 import type { LineTransport } from './client';
 
-export async function listSerialPorts(): Promise<Array<{ path: string; manufacturer?: string; vendorId?: string; productId?: string }>> {
+export async function listSerialPorts(): Promise<
+  Array<{ path: string; manufacturer?: string; vendorId?: string; productId?: string }>
+> {
   const { SerialPort } = await import('serialport');
   return SerialPort.list();
 }

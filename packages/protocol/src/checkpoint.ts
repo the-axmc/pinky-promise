@@ -140,13 +140,16 @@ export function decodeCheckpoint(payload: Uint8Array): Checkpoint {
     blockhash: toHex(payload.subarray(189, 221)),
   };
   if (checkpoint.readingCount < 1) throw new ProtocolError('checkpoint bundles no readings');
-  if (checkpoint.firstSeq > checkpoint.lastSeq) throw new ProtocolError('checkpoint first_seq is after last_seq');
-  if (checkpoint.seq <= checkpoint.lastSeq) throw new ProtocolError('checkpoint seq is not after its readings');
+  if (checkpoint.firstSeq > checkpoint.lastSeq)
+    throw new ProtocolError('checkpoint first_seq is after last_seq');
+  if (checkpoint.seq <= checkpoint.lastSeq)
+    throw new ProtocolError('checkpoint seq is not after its readings');
   return checkpoint;
 }
 
 export function checkpointDigest(payload: Uint8Array): Uint8Array {
-  if (payload.length !== CHECKPOINT_LENGTH) throw new ProtocolError('checkpoint payload has the wrong length');
+  if (payload.length !== CHECKPOINT_LENGTH)
+    throw new ProtocolError('checkpoint payload has the wrong length');
   return sha256(payload);
 }
 
@@ -174,5 +177,10 @@ export function verifyCheckpoint(signed: SignedCheckpoint): VerifiedCheckpoint {
   if (!sameAddress(address, checkpoint.device)) {
     throw new ProtocolError(`checkpoint signed by ${address}, but it names device ${checkpoint.device}`);
   }
-  return { checkpoint: { ...checkpoint, device: normalizeAddress(checkpoint.device) }, payload, digest, signature };
+  return {
+    checkpoint: { ...checkpoint, device: normalizeAddress(checkpoint.device) },
+    payload,
+    digest,
+    signature,
+  };
 }

@@ -129,7 +129,8 @@ export class HederaAdapter {
       const account = this.#accounts[role];
       let gas: bigint;
       try {
-        gas = ((await this.publicClient.estimateContractGas({ ...call, account })) * GAS_HEADROOM_PERCENT) / 100n;
+        gas =
+          ((await this.publicClient.estimateContractGas({ ...call, account })) * GAS_HEADROOM_PERCENT) / 100n;
       } catch (error) {
         // A revert is an answer, not an estimation problem: surface it instead of paying for it.
         const message = (error as Error).message ?? '';
@@ -138,12 +139,16 @@ export class HederaAdapter {
       }
       const hash = await this.#wallets[role].writeContract({ ...call, account, chain: this.chain, gas });
       const receipt = await this.publicClient.waitForTransactionReceipt({ hash, timeout: 120_000 });
-      if (receipt.status !== 'success') throw new Error(`Hedera transaction ${hash} reverted (${call.functionName})`);
+      if (receipt.status !== 'success')
+        throw new Error(`Hedera transaction ${hash} reverted (${call.functionName})`);
       return receipt;
     };
     const previous = this.#queues.get(role) ?? Promise.resolve();
     const next = previous.then(run, run);
-    this.#queues.set(role, next.catch(() => {}));
+    this.#queues.set(
+      role,
+      next.catch(() => {}),
+    );
     return next;
   }
 
@@ -176,12 +181,21 @@ export class HederaAdapter {
       { address: this.config.factory, abi: atsFactoryAbi, functionName: 'deployEquity', args },
       FALLBACK_GAS.deployEquity,
     );
-    const [deployed] = parseEventLogs({ abi: atsFactoryAbi, eventName: 'EquityDeployed', logs: receipt.logs });
+    const [deployed] = parseEventLogs({
+      abi: atsFactoryAbi,
+      eventName: 'EquityDeployed',
+      logs: receipt.logs,
+    });
     if (!deployed) throw new Error('ATS Factory did not emit EquityDeployed');
     const token = deployed.args.equityAddress.toLowerCase() as Address;
 
     // The issuer is its own KYC credential issuer; registering it once makes grantKyc usable.
-    await this.#send('issuer', { address: token, abi: atsTokenAbi, functionName: 'addIssuer', args: [this.issuer] });
+    await this.#send('issuer', {
+      address: token,
+      abi: atsTokenAbi,
+      functionName: 'addIssuer',
+      args: [this.issuer],
+    });
     return { token, txHash: receipt.transactionHash };
   }
 
@@ -205,10 +219,18 @@ export class HederaAdapter {
   /** Allowlists and KYCs an investor. Safe to call again for someone already onboarded. */
   async onboardInvestor(token: Address, investor: Address): Promise<void> {
     const read = { address: token, abi: atsTokenAbi } as const;
-    if (!(await this.publicClient.readContract({ ...read, functionName: 'isInControlList', args: [investor] }))) {
+    if (
+      !(await this.publicClient.readContract({ ...read, functionName: 'isInControlList', args: [investor] }))
+    ) {
       await this.#send('issuer', { ...read, functionName: 'addToControlList', args: [investor] });
     }
-    if ((await this.publicClient.readContract({ ...read, functionName: 'getKycStatusFor', args: [investor] })) !== 1) {
+    if (
+      (await this.publicClient.readContract({
+        ...read,
+        functionName: 'getKycStatusFor',
+        args: [investor],
+      })) !== 1
+    ) {
       const block = await this.publicClient.getBlock();
       const validFrom = block.timestamp - 60n;
       const validTo = block.timestamp + 365n * 86_400n;
@@ -223,7 +245,9 @@ export class HederaAdapter {
   /** Allowlists a contract that moves units on holders' behalf (the market). No KYC needed. */
   async allowlistSpender(token: Address, spender: Address): Promise<void> {
     const read = { address: token, abi: atsTokenAbi } as const;
-    if (!(await this.publicClient.readContract({ ...read, functionName: 'isInControlList', args: [spender] }))) {
+    if (
+      !(await this.publicClient.readContract({ ...read, functionName: 'isInControlList', args: [spender] }))
+    ) {
       await this.#send('issuer', { ...read, functionName: 'addToControlList', args: [spender] });
     }
   }
@@ -287,7 +311,11 @@ export class HederaAdapter {
         input.breachReading?.sig ?? '0x',
       ],
     });
-    const [applied] = parseEventLogs({ abi: custodyOracleAbi, eventName: 'CheckpointApplied', logs: receipt.logs });
+    const [applied] = parseEventLogs({
+      abi: custodyOracleAbi,
+      eventName: 'CheckpointApplied',
+      logs: receipt.logs,
+    });
     if (!applied) throw new Error('oracle did not emit CheckpointApplied');
     return {
       txHash: receipt.transactionHash,

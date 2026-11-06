@@ -48,12 +48,20 @@ export async function connect(gatewayUrl: string): Promise<Context> {
     gatewayUrl: base,
     config,
     arkiv: createArkivClient({ chain: arkivChain, transport: http() }) as never,
-    hedera: createPublicClient({ chain: hederaChain, transport: http(), pollingInterval: config.hedera.chainId === 31337 ? 200 : 2_000 }),
+    hedera: createPublicClient({
+      chain: hederaChain,
+      transport: http(),
+      pollingInterval: config.hedera.chainId === 31337 ? 200 : 2_000,
+    }),
     hederaChain,
   };
 }
 
 /** Link to an account, contract or transaction on the block explorer, when there is one. */
-export function explorerLink(config: PublicConfig, kind: 'contract' | 'account' | 'transaction', id: string): string | undefined {
+export function explorerLink(
+  config: PublicConfig,
+  kind: 'contract' | 'account' | 'transaction',
+  id: string,
+): string | undefined {
   return config.hedera.explorerUrl ? `${config.hedera.explorerUrl}/${kind}/${id}` : undefined;
 }

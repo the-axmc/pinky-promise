@@ -50,7 +50,7 @@ Everything here was observed while building this repository. Nothing is hypothet
 - **What happened:** the SDK estimates and adds 25 %, but the `arkiv-first-write` and
   `arkiv-write-safety` skills say default estimation produced out-of-gas reverts on Rabdi and
   recommend explicit `{ nonce, gas, gasPrice }` with `gas = max(1,000,000 + 400,000 × (ops − 1),
-  2 × estimate)`. Those numbers are not in the docs, and the SDK has no public estimator for a
+2 × estimate)`. Those numbers are not in the docs, and the SDK has no public estimator for a
   create (the skill says so too), so we hard-coded the floor.
 - **Related:** the SDK's public client type does not expose viem actions it has at runtime;
   `getGasPrice` needs `import { getGasPrice } from 'viem/actions'` (TS2339 otherwise).

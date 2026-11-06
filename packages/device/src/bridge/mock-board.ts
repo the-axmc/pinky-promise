@@ -109,7 +109,9 @@ export class MockBoard {
       ...options.parts,
     };
     this.#seSecret = options.seSecret ? fromHex(options.seSecret, 32) : p256GenerateSecret();
-    this.#seSerial = options.seSerial ? fromHex(options.seSerial, 9) : Uint8Array.of(0x01, 0x23, ...randomBytes(6), 0xee);
+    this.#seSerial = options.seSerial
+      ? fromHex(options.seSerial, 9)
+      : Uint8Array.of(0x01, 0x23, ...randomBytes(6), 0xee);
     this.#walletSecret = options.walletSecret ? fromHex(options.walletSecret, 32) : secpGenerateSecret();
     this.#venueId = options.venueId ?? '';
     this.#highS = options.highS ?? false;
@@ -286,7 +288,11 @@ export class MockBoard {
           blockhash: toHex(unhex(params.blockhash, 32)),
           counter: this.#counter,
         });
-        return { payload: bare(payload), sig: bare(this.#secpSign(sha256(payload))), pubkey: bare(this.publicKey) };
+        return {
+          payload: bare(payload),
+          sig: bare(this.#secpSign(sha256(payload))),
+          pubkey: bare(this.publicKey),
+        };
       }
       default:
         throw new Error('unknown command');

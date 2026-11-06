@@ -3,9 +3,22 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { decryptFile } from '@0gfoundation/0g-storage-ts-sdk';
 import { type MockZgRouter, startMockZgRouter } from '@pinky/devnet';
-import { buildVectors, decodeReading, encryptEpisode, fromHex, generateViewKey, summarizeReadings } from '@pinky/protocol';
+import {
+  buildVectors,
+  decodeReading,
+  encryptEpisode,
+  fromHex,
+  generateViewKey,
+  summarizeReadings,
+} from '@pinky/protocol';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { type DecisionInput, ZgDecisionClient, ZgUnavailable, buildUserPrompt, parseDecision } from '../src/zg/decision';
+import {
+  type DecisionInput,
+  ZgDecisionClient,
+  ZgUnavailable,
+  buildUserPrompt,
+  parseDecision,
+} from '../src/zg/decision';
 import { LocalEpisodeStore, zgMerkleRoot } from '../src/zg/storage';
 
 const vectors = buildVectors();
@@ -41,7 +54,12 @@ afterAll(async () => {
 });
 beforeEach(() => {
   router.setMode('up');
-  client = new ZgDecisionClient({ mode: 'mock', baseUrl: router.baseUrl, apiKey: 'sk-test', model: 'mock-vision' });
+  client = new ZgDecisionClient({
+    mode: 'mock',
+    baseUrl: router.baseUrl,
+    apiKey: 'sk-test',
+    model: 'mock-vision',
+  });
 });
 
 describe('decision parsing', () => {
@@ -49,8 +67,12 @@ describe('decision parsing', () => {
     const answer = '{"decision":"REJECT","seal":"broken","reason":"The seal is torn."}';
     expect(parseDecision(answer)).toEqual({ decision: 'REJECT', reason: 'The seal is torn.' });
     expect(parseDecision('```json\n' + answer + '\n```')).toMatchObject({ decision: 'REJECT' });
-    expect(parseDecision(`Here is my answer: ${answer} Hope that helps.`)).toMatchObject({ decision: 'REJECT' });
-    expect(parseDecision('{"decision":"accept_custody","reason":"ok"}')).toMatchObject({ decision: 'ACCEPT_CUSTODY' });
+    expect(parseDecision(`Here is my answer: ${answer} Hope that helps.`)).toMatchObject({
+      decision: 'REJECT',
+    });
+    expect(parseDecision('{"decision":"accept_custody","reason":"ok"}')).toMatchObject({
+      decision: 'ACCEPT_CUSTODY',
+    });
   });
 
   it('finds no decision in anything else', () => {
@@ -77,7 +99,12 @@ describe('the prompt', () => {
       lot: 'LOT-42',
       handoff: 'DOCK_HANDOFF',
       custody_state_before: 'IN_TRANSIT',
-      readings: { count: 5, out_of_range: 3, temperature_c: { min: -1.5, max: 12.6 }, limits: { tempMinC: 2, tempMaxC: 8 } },
+      readings: {
+        count: 5,
+        out_of_range: 3,
+        temperature_c: { min: -1.5, max: 12.6 },
+        limits: { tempMinC: 2, tempMaxC: 8 },
+      },
       seal: { photo_attached: true, hardware_reports_tamper: false },
       location: { venue_anchor_cosigned: true, geofence_proven: true, venue: 'DK-PNQ-02' },
     });
@@ -89,9 +116,15 @@ describe('ZgDecisionClient against an OpenAI-compatible endpoint', () => {
   it('passes a preflight that checks the model takes images', async () => {
     expect(await client.preflight()).toEqual({ ok: true, problems: [], acceptsImages: true, jsonMode: true });
     const wrongModel = new ZgDecisionClient({ ...client.config, model: 'no-such-model' });
-    expect(await wrongModel.preflight()).toMatchObject({ ok: false, problems: [expect.stringMatching(/not in the 0G catalog/)] });
+    expect(await wrongModel.preflight()).toMatchObject({
+      ok: false,
+      problems: [expect.stringMatching(/not in the 0G catalog/)],
+    });
     const dead = new ZgDecisionClient({ ...client.config, baseUrl: 'http://127.0.0.1:9/v1' });
-    expect(await dead.preflight()).toMatchObject({ ok: false, problems: [expect.stringMatching(/unreachable/)] });
+    expect(await dead.preflight()).toMatchObject({
+      ok: false,
+      problems: [expect.stringMatching(/unreachable/)],
+    });
   });
 
   it('returns a decision with its request id, and marks where it came from', async () => {
@@ -134,7 +167,11 @@ describe('safe stop: no decision is ever invented', () => {
   };
 
   it('throws "unreachable" when nothing answers', async () => {
-    const dead = new ZgDecisionClient({ ...client.config, baseUrl: 'http://127.0.0.1:9/v1', timeoutMs: 2000 });
+    const dead = new ZgDecisionClient({
+      ...client.config,
+      baseUrl: 'http://127.0.0.1:9/v1',
+      timeoutMs: 2000,
+    });
     const error = await failure(dead.decide(input()));
     expect(error).toBeInstanceOf(ZgUnavailable);
     expect(error.kind).toBe('unreachable');
@@ -199,7 +236,9 @@ describe('episode storage', () => {
 
   it('encrypts in the format the 0G Storage SDK itself decrypts', () => {
     const key = fromHex(generateViewKey());
-    const plaintext = new TextEncoder().encode(JSON.stringify({ readings: readings.length, note: 'raw values' }));
+    const plaintext = new TextEncoder().encode(
+      JSON.stringify({ readings: readings.length, note: 'raw values' }),
+    );
     expect(decryptFile(key, encryptEpisode(plaintext, key))).toEqual(plaintext);
   });
 });

@@ -9,12 +9,12 @@ Built for ETHGlobal Mumbai from [`docs/architecture-plan.md`](docs/architecture-
 
 ## Status
 
-| | |
-| --- | --- |
+|                               |                                                                                                                                                                                                                         |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | The whole flow on one machine | **Works.** Simulated device, local stand-ins for the three networks running the unmodified Arkiv SDK and the real ATS contract bytecode, more than 360 automated tests, and the buyer page exercised in a real browser. |
-| Arkiv, Hedera and 0G testnets | **Not deployed yet.** The code paths exist and all three networks were reached read-only (`pnpm doctor`), but no transaction has been sent: that needs funded keys and a 0G API key. |
-| Real 0G model | **Not exercised.** Local decisions come from a stand-in and are labelled `dev-mock` everywhere they appear. |
-| Hardware | Host side **tested** against an in-memory board. Firmware **written but not yet compiled or run** on a board. See [`docs/hardware.md`](docs/hardware.md). |
+| Arkiv, Hedera and 0G testnets | **Not deployed yet.** The code paths exist and all three networks were reached read-only (`pnpm doctor`), but no transaction has been sent: that needs funded keys and a 0G API key.                                    |
+| Real 0G model                 | **Not exercised.** Local decisions come from a stand-in and are labelled `dev-mock` everywhere they appear.                                                                                                             |
+| Hardware                      | Host side **tested** against an in-memory board. Firmware **written but not yet compiled or run** on a board. See [`docs/hardware.md`](docs/hardware.md).                                                               |
 
 [`docs/decisions.md`](docs/decisions.md) lists every gap in the plan and how it was filled.
 
@@ -32,13 +32,13 @@ The demo starts the three local networks and the gateway, registers two venues, 
 simulated device, issues the lot's receipt token and plays seven acts:
 
 1. Origin warehouse — custody accepted, 100 units issued, 40 offered on the market.
-   *(`--pause` stops here: buy some on the buyer page.)*
+   _(`--pause` stops here: buy some on the buyer page.)_
 2. Leaving the warehouse — in transit, transfers restricted.
 3. On the road — the cooling fails: one reading at 12.6 °C against a 2–8 °C limit.
 4. Destination dock — 0G is unreachable. **Safe stop**: the handoff stays PENDING, no decision
    is made up, the token is not touched.
 5. 0G answers — REJECT, plus the device-signed out-of-range reading: every unit is frozen.
-   *(`--pause` stops here too: see the freeze on the buyer page.)*
+   _(`--pause` stops here too: see the freeze on the buyer page.)_
 6. Inspection — the inspector releases the lot.
 7. Final delivery — accepted; holders can redeem.
 
@@ -97,18 +97,18 @@ temperatures and the seal photos; "Verify all in this browser" runs the zero-kno
 
 ## Commands
 
-| Command | What it does |
-| --- | --- |
-| `pnpm demo` | The whole system locally, with a scripted journey. `--pause`, `--interactive`, `--port <port>` for a real board, `--once` to exit at the end |
-| `pnpm web` | The buyer page |
-| `pnpm device probe --port <port>` | Check every part on a board (`--port mock` for an in-memory board) |
-| `pnpm device run --gateway <url>` | Run a device against a gateway from the keyboard |
-| `pnpm arkiv:query --lot LOT-42 --out-of-range` | One runnable Arkiv query; also prints the writer wallets |
-| `pnpm doctor` | Read-only check of the configured networks, accounts and contracts |
-| `pnpm deploy:hedera` | Deploy the custody oracle and the market |
-| `pnpm gateway` | The gateway against the real networks |
-| `pnpm test` · `pnpm typecheck` | All TypeScript tests · type checks |
-| `cd contracts && forge test` | Solidity tests (clone with `--recurse-submodules`) |
+| Command                                        | What it does                                                                                                                                 |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm demo`                                    | The whole system locally, with a scripted journey. `--pause`, `--interactive`, `--port <port>` for a real board, `--once` to exit at the end |
+| `pnpm web`                                     | The buyer page                                                                                                                               |
+| `pnpm device probe --port <port>`              | Check every part on a board (`--port mock` for an in-memory board)                                                                           |
+| `pnpm device run --gateway <url>`              | Run a device against a gateway from the keyboard                                                                                             |
+| `pnpm arkiv:query --lot LOT-42 --out-of-range` | One runnable Arkiv query; also prints the writer wallets                                                                                     |
+| `pnpm doctor`                                  | Read-only check of the configured networks, accounts and contracts                                                                           |
+| `pnpm deploy:hedera`                           | Deploy the custody oracle and the market                                                                                                     |
+| `pnpm gateway`                                 | The gateway against the real networks                                                                                                        |
+| `pnpm test` · `pnpm typecheck`                 | All TypeScript tests · type checks                                                                                                           |
+| `cd contracts && forge test`                   | Solidity tests (clone with `--recurse-submodules`)                                                                                           |
 
 ## Going to the testnets
 
@@ -129,16 +129,16 @@ Venues and lots are created through the gateway's admin API (`POST /v1/admin/ven
 
 ### Deployed addresses
 
-*To fill in after deployment.*
+_To fill in after deployment._
 
-| | Address |
-| --- | --- |
-| Arkiv writer — registry (Device, Venue, Lot) | — |
-| Arkiv writer — device (Reading, Checkpoint) | — |
-| Arkiv writer — gateway (GeoProof) | — |
-| Hedera — CustodyOracle | — |
-| Hedera — ReceiptMarket | — |
-| Hedera — receipt token of the demo lot | — |
+|                                              | Address |
+| -------------------------------------------- | ------- |
+| Arkiv writer — registry (Device, Venue, Lot) | —       |
+| Arkiv writer — device (Reading, Checkpoint)  | —       |
+| Arkiv writer — gateway (GeoProof)            | —       |
+| Hedera — CustodyOracle                       | —       |
+| Hedera — ReceiptMarket                       | —       |
+| Hedera — receipt token of the demo lot       | —       |
 
 `pnpm arkiv:query` prints the three Arkiv writers for a running gateway.
 
@@ -151,39 +151,39 @@ hardware can be connected one piece at a time without changing code.
 
 ## Repository
 
-| Path | What it is |
-| --- | --- |
-| `packages/protocol` | The signed wire formats and the custody state machine, shared by everything else |
-| `packages/device` | Device logic, its simulator, the serial bridge to a real board, and the device CLI |
-| `packages/zk` | The Noir geofence circuit, its prover and its browser-ready verifier |
-| `packages/gateway` | The relay: verification, proofs, the 0G decision, Arkiv and Hedera; the demo |
-| `packages/devnet` | Local stand-ins for the three networks |
-| `packages/web` | The buyer page |
-| `contracts` | `CustodyOracle` (drives the ATS token) and `ReceiptMarket`, with Foundry tests |
-| `firmware/pinky-bridge` | ESP32-S3 firmware for the device and the venue anchor |
-| `arkiv` | The Arkiv track write-ups: schema, why, how, friction, reach |
-| `docs` | The plan, decisions, device protocol, hardware guide, demo script |
+| Path                    | What it is                                                                         |
+| ----------------------- | ---------------------------------------------------------------------------------- |
+| `packages/protocol`     | The signed wire formats and the custody state machine, shared by everything else   |
+| `packages/device`       | Device logic, its simulator, the serial bridge to a real board, and the device CLI |
+| `packages/zk`           | The Noir geofence circuit, its prover and its browser-ready verifier               |
+| `packages/gateway`      | The relay: verification, proofs, the 0G decision, Arkiv and Hedera; the demo       |
+| `packages/devnet`       | Local stand-ins for the three networks                                             |
+| `packages/web`          | The buyer page                                                                     |
+| `contracts`             | `CustodyOracle` (drives the ATS token) and `ReceiptMarket`, with Foundry tests     |
+| `firmware/pinky-bridge` | ESP32-S3 firmware for the device and the venue anchor                              |
+| `arkiv`                 | The Arkiv track write-ups: schema, why, how, friction, reach                       |
+| `docs`                  | The plan, decisions, device protocol, hardware guide, demo script                  |
 
 ## Submission checklist
 
 **Done** = built and verified here. **Built** = implemented and verified against the local
 stand-in only; it still has to be run on the live network. **To do** = not started.
 
-| Track | Requirement | Status |
-| --- | --- | --- |
-| 0G | 0G call in the decision loop | **Built** — the Compute Router client; decisions so far came from the stand-in |
-| 0G | Episode log on 0G Storage with a request id per decision | **Built** — episodes go to a local folder until 0G Storage is configured |
-| 0G | Live hardware demo, or replayable sim | **Done** as a sim (`pnpm demo`); hardware pending the boards |
-| 0G | Safe stop when 0G is unreachable | **Done** — act 4 of the demo, and tests |
-| 0G | Public repo, video under 3 minutes, contract addresses | **To do** — script in [`docs/demo-script.md`](docs/demo-script.md) |
-| Arkiv | Writes to the current testnet | **Built** — run against a local Arkiv-compatible node only |
-| Arkiv | A user-facing feature reads from Arkiv | **Done** — the buyer page (against the local node) |
-| Arkiv | README: writer wallet addresses and one runnable query | Query **done** (`pnpm arkiv:query`); addresses **to do** after deployment |
-| Arkiv | `/arkiv` write-ups | **Done** — [schema](arkiv/schema.md), [friction](arkiv/friction.md), [why](arkiv/why-arkiv.md), [how](arkiv/how-you-use-arkiv.md); [reach](arkiv/reach.md) has sections for the team to fill in |
-| Arkiv | Open-source licence; AI use disclosed | **Done** — MIT; see below |
-| Hedera | Issuance, configuration and a lifecycle operation on testnet | **Built** — all run against the real ATS contracts on a local chain |
-| Hedera | Contracts verified on HashScan | **To do** — `pnpm deploy:hedera` prints the commands |
-| Hedera | Video of 4 minutes or less | **To do** — script in [`docs/demo-script.md`](docs/demo-script.md) |
+| Track  | Requirement                                                  | Status                                                                                                                                                                                          |
+| ------ | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0G     | 0G call in the decision loop                                 | **Built** — the Compute Router client; decisions so far came from the stand-in                                                                                                                  |
+| 0G     | Episode log on 0G Storage with a request id per decision     | **Built** — episodes go to a local folder until 0G Storage is configured                                                                                                                        |
+| 0G     | Live hardware demo, or replayable sim                        | **Done** as a sim (`pnpm demo`); hardware pending the boards                                                                                                                                    |
+| 0G     | Safe stop when 0G is unreachable                             | **Done** — act 4 of the demo, and tests                                                                                                                                                         |
+| 0G     | Public repo, video under 3 minutes, contract addresses       | **To do** — script in [`docs/demo-script.md`](docs/demo-script.md)                                                                                                                              |
+| Arkiv  | Writes to the current testnet                                | **Built** — run against a local Arkiv-compatible node only                                                                                                                                      |
+| Arkiv  | A user-facing feature reads from Arkiv                       | **Done** — the buyer page (against the local node)                                                                                                                                              |
+| Arkiv  | README: writer wallet addresses and one runnable query       | Query **done** (`pnpm arkiv:query`); addresses **to do** after deployment                                                                                                                       |
+| Arkiv  | `/arkiv` write-ups                                           | **Done** — [schema](arkiv/schema.md), [friction](arkiv/friction.md), [why](arkiv/why-arkiv.md), [how](arkiv/how-you-use-arkiv.md); [reach](arkiv/reach.md) has sections for the team to fill in |
+| Arkiv  | Open-source licence; AI use disclosed                        | **Done** — MIT; see below                                                                                                                                                                       |
+| Hedera | Issuance, configuration and a lifecycle operation on testnet | **Built** — all run against the real ATS contracts on a local chain                                                                                                                             |
+| Hedera | Contracts verified on HashScan                               | **To do** — `pnpm deploy:hedera` prints the commands                                                                                                                                            |
+| Hedera | Video of 4 minutes or less                                   | **To do** — script in [`docs/demo-script.md`](docs/demo-script.md)                                                                                                                              |
 
 ## AI use
 

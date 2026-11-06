@@ -62,19 +62,25 @@ type Handoff = {
 
 function decide(handoff: Handoff, seal: 'intact' | 'broken' | 'unclear' | 'not_shown') {
   const outOfRange = handoff.readings?.out_of_range ?? 0;
-  if (seal === 'broken') return { decision: 'REJECT', seal, reason: 'The tamper seal is torn and the carton has been opened.' };
+  if (seal === 'broken')
+    return { decision: 'REJECT', seal, reason: 'The tamper seal is torn and the carton has been opened.' };
   if (handoff.seal?.hardware_reports_tamper) {
     return { decision: 'REJECT', seal, reason: 'The seal hardware reports tampering.' };
   }
   if (outOfRange > 0) {
     return { decision: 'REJECT', seal, reason: `${outOfRange} reading(s) were outside the allowed range.` };
   }
-  if (seal === 'unclear') return { decision: 'ESCALATE', seal, reason: 'The photo does not clearly show the seal.' };
+  if (seal === 'unclear')
+    return { decision: 'ESCALATE', seal, reason: 'The photo does not clearly show the seal.' };
   if (seal === 'not_shown') return { decision: 'ESCALATE', seal, reason: 'No seal evidence was provided.' };
   if ((handoff.readings?.missing ?? 0) > 0) {
     return { decision: 'ESCALATE', seal, reason: 'Some readings are missing from the window.' };
   }
-  return { decision: 'ACCEPT_CUSTODY', seal, reason: 'The seal is intact and every reading is within limits.' };
+  return {
+    decision: 'ACCEPT_CUSTODY',
+    seal,
+    reason: 'The seal is intact and every reading is within limits.',
+  };
 }
 
 export async function startMockZgRouter(options: { port?: number } = {}): Promise<MockZgRouter> {
@@ -90,7 +96,12 @@ export async function startMockZgRouter(options: { port?: number } = {}): Promis
     stop: () => new Promise((done) => server.close(() => done())),
   };
 
-  const json = (res: import('node:http').ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}) => {
+  const json = (
+    res: import('node:http').ServerResponse,
+    status: number,
+    body: unknown,
+    headers: Record<string, string> = {},
+  ) => {
     res.writeHead(status, { 'content-type': 'application/json', ...headers });
     res.end(JSON.stringify(body));
   };
@@ -117,14 +128,17 @@ export async function startMockZgRouter(options: { port?: number } = {}): Promis
       req.on('data', (chunk) => (raw += chunk));
       req.on('end', () => {
         const mode = JSON.parse(raw || '{}').mode as MockMode;
-        if (!['up', 'down', 'garbage', 'no-balance'].includes(mode)) return json(res, 400, { error: 'unknown mode' });
+        if (!['up', 'down', 'garbage', 'no-balance'].includes(mode))
+          return json(res, 400, { error: 'unknown mode' });
         state.setMode(mode);
         json(res, 200, { mode });
       });
       return;
     }
     if (req.method !== 'POST' || url.pathname !== '/v1/chat/completions') {
-      return json(res, 404, { error: { type: 'not_found_error', code: 'not_found', message: 'no such route' } });
+      return json(res, 404, {
+        error: { type: 'not_found_error', code: 'not_found', message: 'no such route' },
+      });
     }
 
     const chunks: Buffer[] = [];
@@ -132,26 +146,43 @@ export async function startMockZgRouter(options: { port?: number } = {}): Promis
     req.on('end', () => {
       const requestId = `mock-${randomUUID()}`;
       if (!/^Bearer \S+/.test(req.headers.authorization ?? '')) {
-        return json(res, 401, { error: { type: 'invalid_request_error', code: 'missing_authorization', message: 'no API key' }, request_id: requestId });
+        return json(res, 401, {
+          error: { type: 'invalid_request_error', code: 'missing_authorization', message: 'no API key' },
+          request_id: requestId,
+        });
       }
       if (state.mode === 'down') {
         state.requests.push({ at: Date.now(), hasImage: false });
-        return json(res, 503, { error: { type: 'server_error', code: 'no_available_provider', message: 'no healthy provider' }, request_id: requestId });
+        return json(res, 503, {
+          error: { type: 'server_error', code: 'no_available_provider', message: 'no healthy provider' },
+          request_id: requestId,
+        });
       }
       if (state.mode === 'no-balance') {
         state.requests.push({ at: Date.now(), hasImage: false });
-        return json(res, 402, { error: { type: 'payment_error', code: 'insufficient_balance', message: 'deposit more 0G' }, request_id: requestId });
+        return json(res, 402, {
+          error: { type: 'payment_error', code: 'insufficient_balance', message: 'deposit more 0G' },
+          request_id: requestId,
+        });
       }
 
       let body: any;
       try {
         body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
       } catch {
-        return json(res, 400, { error: { type: 'invalid_request_error', code: 'invalid_body', message: 'not JSON' }, request_id: requestId });
+        return json(res, 400, {
+          error: { type: 'invalid_request_error', code: 'invalid_body', message: 'not JSON' },
+          request_id: requestId,
+        });
       }
       const user = [...(body.messages ?? [])].reverse().find((message: any) => message.role === 'user');
-      const parts: any[] = Array.isArray(user?.content) ? user.content : [{ type: 'text', text: String(user?.content ?? '') }];
-      const text = parts.filter((part) => part.type === 'text').map((part) => part.text).join('\n');
+      const parts: any[] = Array.isArray(user?.content)
+        ? user.content
+        : [{ type: 'text', text: String(user?.content ?? '') }];
+      const text = parts
+        .filter((part) => part.type === 'text')
+        .map((part) => part.text)
+        .join('\n');
       const image = parts.find((part) => part.type === 'image_url')?.image_url?.url as string | undefined;
 
       let seal: 'intact' | 'broken' | 'unclear' | 'not_shown' = 'not_shown';
@@ -166,13 +197,25 @@ export async function startMockZgRouter(options: { port?: number } = {}): Promis
         // No machine-readable handoff: decide on the seal alone.
       }
       // An NFC tag or enclosure switch is seal evidence too, even without a photo.
-      if (seal === 'not_shown' && handoff.seal && handoff.seal.hardware_reports_tamper === false && !handoff.seal.photo_attached) {
+      if (
+        seal === 'not_shown' &&
+        handoff.seal &&
+        handoff.seal.hardware_reports_tamper === false &&
+        !handoff.seal.photo_attached
+      ) {
         seal = 'intact';
       }
 
       const answer = decide(handoff, seal);
-      const content = state.mode === 'garbage' ? 'Looks fine to me, I would probably let it through.' : JSON.stringify(answer);
-      state.requests.push({ at: Date.now(), hasImage: Boolean(image), decision: state.mode === 'garbage' ? undefined : answer.decision });
+      const content =
+        state.mode === 'garbage'
+          ? 'Looks fine to me, I would probably let it through.'
+          : JSON.stringify(answer);
+      state.requests.push({
+        at: Date.now(),
+        hasImage: Boolean(image),
+        decision: state.mode === 'garbage' ? undefined : answer.decision,
+      });
       json(
         res,
         200,

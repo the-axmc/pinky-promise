@@ -120,7 +120,9 @@ export async function openDeviceSession(options: SessionOptions): Promise<Device
       opened.push(board);
       boardInfo = await board.waitReady();
       if (boardInfo.role !== 'device') {
-        throw new ProtocolError(`the board on ${options.port} is a venue anchor, not a device — pass it as the anchor port`);
+        throw new ProtocolError(
+          `the board on ${options.port} is a venue anchor, not a device — pass it as the anchor port`,
+        );
       }
       log(`board on ${options.port}: ${boardInfo.board}, firmware ${boardInfo.fw}`);
     }
@@ -128,11 +130,13 @@ export async function openDeviceSession(options: SessionOptions): Promise<Device
     let anchorBoard: BoardClient | undefined;
     let mockAnchor: MockBoard | undefined;
     if (options.anchorPort) {
-      if (options.anchorPort === 'mock') mockAnchor = options.mockAnchorBoard ?? new MockBoard({ role: 'anchor' });
+      if (options.anchorPort === 'mock')
+        mockAnchor = options.mockAnchorBoard ?? new MockBoard({ role: 'anchor' });
       anchorBoard = await connect(options.anchorPort, mockAnchor!, log);
       opened.push(anchorBoard);
       const anchorInfo = await anchorBoard.waitReady();
-      if (anchorInfo.role !== 'anchor') throw new ProtocolError(`the board on ${options.anchorPort} is not a venue anchor`);
+      if (anchorInfo.role !== 'anchor')
+        throw new ProtocolError(`the board on ${options.anchorPort} is not a venue anchor`);
     }
 
     const plan = planFor(boardInfo, {
@@ -146,7 +150,9 @@ export async function openDeviceSession(options: SessionOptions): Promise<Device
       try {
         await board!.request('se.info');
       } catch (error) {
-        log(`ATECC608B is not usable yet (${(error as Error).message}); simulating the secure element for now`);
+        log(
+          `ATECC608B is not usable yet (${(error as Error).message}); simulating the secure element for now`,
+        );
         plan.secureElement = 'sim';
       }
     }
@@ -164,7 +170,9 @@ export async function openDeviceSession(options: SessionOptions): Promise<Device
     });
 
     if (options.wrapAnchor) {
-      assembled.hardware.anchor = options.wrapAnchor(plan.anchor === 'board' ? assembled.hardware.anchor : undefined);
+      assembled.hardware.anchor = options.wrapAnchor(
+        plan.anchor === 'board' ? assembled.hardware.anchor : undefined,
+      );
     }
 
     const address = await assembled.hardware.wallet.address();
@@ -184,7 +192,7 @@ export async function openDeviceSession(options: SessionOptions): Promise<Device
       if (enrolledKey !== currentKey) {
         throw new ProtocolError(
           `device ${address} was enrolled with a different secure element. A device's identity is fixed at enrolment: ` +
-            'give it a new wallet (erase the board\'s flash, or use a new data directory for a simulated wallet) and enrol it again.',
+            "give it a new wallet (erase the board's flash, or use a new data directory for a simulated wallet) and enrol it again.",
         );
       }
     }
@@ -194,7 +202,8 @@ export async function openDeviceSession(options: SessionOptions): Promise<Device
     const steer: Steering = {
       climate(tempCenti, rhCenti) {
         if (sim.climate) sim.climate.set(tempCenti, rhCenti);
-        else if (mock && plan.climate === 'board') mock.climate = { tempCenti: Math.round(tempCenti), rhCenti: Math.round(rhCenti) };
+        else if (mock && plan.climate === 'board')
+          mock.climate = { tempCenti: Math.round(tempCenti), rhCenti: Math.round(rhCenti) };
         else return false;
         return true;
       },

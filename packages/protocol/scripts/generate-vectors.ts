@@ -21,5 +21,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   mkdirSync(dirname(VECTORS_FILE), { recursive: true });
   writeFileSync(VECTORS_FILE, renderVectors());
   const vectors = buildVectors();
-  console.log(`Wrote ${VECTORS_FILE}: ${vectors.readings.length} readings, ${vectors.policy.length} policy rows`);
+  console.log(
+    `Wrote ${VECTORS_FILE}: ${vectors.readings.length} readings, ${vectors.policy.length} policy rows`,
+  );
 }

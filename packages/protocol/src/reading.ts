@@ -125,5 +125,11 @@ export function verifyReading(signed: SignedReading): VerifiedReading {
   if (!sameAddress(address, reading.device)) {
     throw new ProtocolError(`reading signed by ${address}, but it names device ${reading.device}`);
   }
-  return { reading: { ...reading, device: normalizeAddress(reading.device) }, payload, digest, signature, publicKey };
+  return {
+    reading: { ...reading, device: normalizeAddress(reading.device) },
+    payload,
+    digest,
+    signature,
+    publicKey,
+  };
 }

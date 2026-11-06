@@ -5,8 +5,14 @@ export function Checks({ checks, compact = false }: { checks: Check[]; compact?:
   if (compact) {
     const failed = checks.filter((check) => !check.ok);
     return (
-      <span className={`badge ${failed.length ? 'badge-bad' : 'badge-good'}`} title={checks.map((c) => `${c.ok ? '✓' : '✕'} ${c.label}${c.detail ? ` — ${c.detail}` : ''}`).join('\n')}>
-        <span aria-hidden="true">{failed.length ? '✕' : '✓'}</span> {failed.length ? `${failed.length} check${failed.length > 1 ? 's' : ''} failed` : 'verified'}
+      <span
+        className={`badge ${failed.length ? 'badge-bad' : 'badge-good'}`}
+        title={checks
+          .map((c) => `${c.ok ? '✓' : '✕'} ${c.label}${c.detail ? ` — ${c.detail}` : ''}`)
+          .join('\n')}
+      >
+        <span aria-hidden="true">{failed.length ? '✕' : '✓'}</span>{' '}
+        {failed.length ? `${failed.length} check${failed.length > 1 ? 's' : ''} failed` : 'verified'}
       </span>
     );
   }

@@ -70,7 +70,10 @@ export class EntityStore {
       // chain behind the same port), everything we derived from it is void.
       let stillThere = head.blockNumber >= this.syncedBlock;
       if (stillThere && head.blockNumber !== this.syncedBlock) {
-        const previous = await this.rpc('eth_getBlockByNumber', [`0x${this.syncedBlock.toString(16)}`, false]);
+        const previous = await this.rpc('eth_getBlockByNumber', [
+          `0x${this.syncedBlock.toString(16)}`,
+          false,
+        ]);
         stillThere = previous?.hash === this.syncedHash;
       } else if (stillThere) {
         stillThere = head.blockHash === this.syncedHash;
@@ -111,7 +114,11 @@ export class EntityStore {
   private apply(log: RawLog): void {
     let event;
     try {
-      event = decodeEventLog({ abi: ENGINE_EVENTS_ABI, topics: log.topics as [Hex, ...Hex[]], data: log.data });
+      event = decodeEventLog({
+        abi: ENGINE_EVENTS_ABI,
+        topics: log.topics as [Hex, ...Hex[]],
+        data: log.data,
+      });
     } catch {
       return; // not one of the engine's events
     }
@@ -175,4 +182,3 @@ export class EntityStore {
     }
   }
 }
-

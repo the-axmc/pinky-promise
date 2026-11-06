@@ -54,7 +54,8 @@ export function decodeAnchorAttestation(payload: Uint8Array): AnchorAttestation 
   if (payload.length !== ANCHOR_LENGTH) {
     throw new ProtocolError(`anchor attestation must be ${ANCHOR_LENGTH} bytes, got ${payload.length}`);
   }
-  if (!equalBytes(payload.subarray(0, 4), ANCHOR_MAGIC)) throw new ProtocolError('not a PPA1 anchor attestation');
+  if (!equalBytes(payload.subarray(0, 4), ANCHOR_MAGIC))
+    throw new ProtocolError('not a PPA1 anchor attestation');
   return {
     venueId: readAsciiFixed(payload.subarray(4, 36)),
     device: toHex(payload.subarray(36, 56)),

@@ -5,8 +5,21 @@
  * The receipt tokens themselves are not deployed here: each lot's token is created through the
  * Asset Tokenization Studio factory when the lot is created.
  */
-import { custodyOracleAbi, custodyOracleBytecode, receiptMarketAbi, receiptMarketBytecode } from '@pinky/protocol/hedera';
-import { type Abi, type Hex, createPublicClient, createWalletClient, defineChain, formatEther, http } from 'viem';
+import {
+  custodyOracleAbi,
+  custodyOracleBytecode,
+  receiptMarketAbi,
+  receiptMarketBytecode,
+} from '@pinky/protocol/hedera';
+import {
+  type Abi,
+  type Hex,
+  createPublicClient,
+  createWalletClient,
+  defineChain,
+  formatEther,
+  http,
+} from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { ConfigError, loadEnvFile, readConfig } from './config';
 
@@ -29,14 +42,16 @@ async function main(): Promise<void> {
   if (actual !== chainId) throw new Error(`${rpcUrl} is chain ${actual}, but HEDERA_CHAIN_ID is ${chainId}`);
   const balance = await publicClient.getBalance({ address: account.address });
   console.log(`deployer ${account.address} on chain ${chainId}: ${formatEther(balance)} HBAR`);
-  if (balance === 0n) throw new Error('the deployer has no HBAR: fund it at https://portal.hedera.com/faucet');
+  if (balance === 0n)
+    throw new Error('the deployer has no HBAR: fund it at https://portal.hedera.com/faucet');
 
   const deploy = async (name: string, abi: Abi, bytecode: Hex) => {
     // Hedera bills at least 80 % of the gas limit, so stay close to the estimate.
     const estimate = await publicClient.estimateGas({ account: account.address, data: bytecode });
     const hash = await wallet.deployContract({ abi, bytecode, gas: (estimate * 125n) / 100n });
     const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 180_000 });
-    if (receipt.status !== 'success' || !receipt.contractAddress) throw new Error(`${name} deployment failed (${hash})`);
+    if (receipt.status !== 'success' || !receipt.contractAddress)
+      throw new Error(`${name} deployment failed (${hash})`);
     console.log(`${name}  ${receipt.contractAddress}   ${explorerUrl}/contract/${receipt.contractAddress}`);
     return receipt.contractAddress;
   };
@@ -60,6 +75,10 @@ Verify the sources on HashScan (Sourcify), from the contracts/ folder:
 }
 
 main().catch((error) => {
-  console.error(error instanceof ConfigError ? `\n${error.message}\n\nSee .env.example.` : `\n${(error as Error).message}`);
+  console.error(
+    error instanceof ConfigError
+      ? `\n${error.message}\n\nSee .env.example.`
+      : `\n${(error as Error).message}`,
+  );
   process.exit(1);
 });

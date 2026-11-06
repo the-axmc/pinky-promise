@@ -2,7 +2,12 @@
  * Acceptance tests for queries against the local Arkiv devnet, driven through the unmodified
  * `@arkiv-network/sdk` query builder (and its raw-string escape hatch).
  */
-import { ExpirationTime, SchemaMismatchError, createPublicClient, createWalletClient } from '@arkiv-network/sdk';
+import {
+  ExpirationTime,
+  SchemaMismatchError,
+  createPublicClient,
+  createWalletClient,
+} from '@arkiv-network/sdk';
 import {
   InvalidPredicateError,
   QueryError,
@@ -67,14 +72,100 @@ type Seed = {
 };
 
 const SEED: Seed[] = [
-  { sku: 'A-1', category: 'tools', price: '9.99', stock: 10, listedAt: 1000n, weight: 5n, active: true, by: alice, rank: 3, title: 'Hammer' },
-  { sku: 'A-2', category: 'tools', price: '24.5', stock: 0, listedAt: 2000n, weight: HUGE, active: true, by: alice, parent: true, title: 'Drill' },
-  { sku: 'A-3', category: 'tools', price: '24.5', stock: -5, listedAt: 3000n, weight: 7n, active: false, by: alice, rank: 1, title: 'Saw' },
-  { sku: 'B-1', category: 'toys', price: '3', stock: 100, listedAt: 4000n, weight: 1n, active: true, by: alice, parent: true, rank: 2, title: 'Ball' },
-  { sku: 'B-2', category: 'toys', price: '15.25', stock: 7, listedAt: 5000n, weight: 9n, active: false, by: alice, title: 'Kite' },
-  { sku: 'C-1', category: 'books', price: '12', stock: 3, listedAt: 6000n, weight: 300n, active: true, by: alice, title: 'Novel' },
-  { sku: 'C-2', category: 'books', price: '0.5', stock: 1, listedAt: 7000n, weight: 4n, active: true, by: bob, rank: 5, title: 'Zine' },
-  { sku: 'D-1', category: 'garden', price: '-1.5', stock: 2, listedAt: 8000n, weight: 8n, active: false, by: bob, title: 'Hose' },
+  {
+    sku: 'A-1',
+    category: 'tools',
+    price: '9.99',
+    stock: 10,
+    listedAt: 1000n,
+    weight: 5n,
+    active: true,
+    by: alice,
+    rank: 3,
+    title: 'Hammer',
+  },
+  {
+    sku: 'A-2',
+    category: 'tools',
+    price: '24.5',
+    stock: 0,
+    listedAt: 2000n,
+    weight: HUGE,
+    active: true,
+    by: alice,
+    parent: true,
+    title: 'Drill',
+  },
+  {
+    sku: 'A-3',
+    category: 'tools',
+    price: '24.5',
+    stock: -5,
+    listedAt: 3000n,
+    weight: 7n,
+    active: false,
+    by: alice,
+    rank: 1,
+    title: 'Saw',
+  },
+  {
+    sku: 'B-1',
+    category: 'toys',
+    price: '3',
+    stock: 100,
+    listedAt: 4000n,
+    weight: 1n,
+    active: true,
+    by: alice,
+    parent: true,
+    rank: 2,
+    title: 'Ball',
+  },
+  {
+    sku: 'B-2',
+    category: 'toys',
+    price: '15.25',
+    stock: 7,
+    listedAt: 5000n,
+    weight: 9n,
+    active: false,
+    by: alice,
+    title: 'Kite',
+  },
+  {
+    sku: 'C-1',
+    category: 'books',
+    price: '12',
+    stock: 3,
+    listedAt: 6000n,
+    weight: 300n,
+    active: true,
+    by: alice,
+    title: 'Novel',
+  },
+  {
+    sku: 'C-2',
+    category: 'books',
+    price: '0.5',
+    stock: 1,
+    listedAt: 7000n,
+    weight: 4n,
+    active: true,
+    by: bob,
+    rank: 5,
+    title: 'Zine',
+  },
+  {
+    sku: 'D-1',
+    category: 'garden',
+    price: '-1.5',
+    stock: 2,
+    listedAt: 8000n,
+    weight: 8n,
+    active: false,
+    by: bob,
+    title: 'Hose',
+  },
 ];
 
 const reader = () => createPublicClient({ chain: devnet.chain, transport: http(), cacheTime: 0 });
@@ -82,7 +173,9 @@ const walletOf = (account: typeof alice) =>
   createWalletClient({ chain: devnet.chain, transport: http(), account, cacheTime: 0 });
 
 /** The SKUs a filter matches through the Items schema, sorted for comparison. */
-async function skus(...filters: Parameters<ReturnType<ReturnType<typeof reader>['select']>['where']>): Promise<string[]> {
+async function skus(
+  ...filters: Parameters<ReturnType<ReturnType<typeof reader>['select']>['where']>
+): Promise<string[]> {
   const page = await reader()
     .select({ sku: true })
     .from(Items)
@@ -174,22 +267,25 @@ describe('conditions', () => {
 
   it('combines conditions with AND, OR and nesting', async () => {
     expect(await skus(eq('category', 'tools'), eq('active', true))).toEqual(['A-1', 'A-2']); // where(a, b) is AND
-    expect(await skus(or(eq('category', 'books'), and(eq('category', 'tools'), eq('active', false))))).toEqual([
+    expect(
+      await skus(or(eq('category', 'books'), and(eq('category', 'tools'), eq('active', false)))),
+    ).toEqual(['A-3', 'C-1', 'C-2']);
+    expect(
+      await skus(and(or(eq('category', 'toys'), eq('category', 'garden')), gt('price', dec('0')))),
+    ).toEqual(['B-1', 'B-2']);
+    expect(await skus(or(lt('price', dec('0')), gt('price', dec('20'))), eq('active', false))).toEqual([
       'A-3',
-      'C-1',
-      'C-2',
+      'D-1',
     ]);
-    expect(await skus(and(or(eq('category', 'toys'), eq('category', 'garden')), gt('price', dec('0'))))).toEqual([
-      'B-1',
-      'B-2',
-    ]);
-    expect(await skus(or(lt('price', dec('0')), gt('price', dec('20'))), eq('active', false))).toEqual(['A-3', 'D-1']);
   });
 
   it('asserts the type: a value of another type never matches', async () => {
     const client = reader();
     // Without a schema nothing stops us comparing a dec attribute against an i32.
-    const wrongType = await client.select({ $key: true }).where(eq('category', 'tools'), eq('price', 24)).fetch();
+    const wrongType = await client
+      .select({ $key: true })
+      .where(eq('category', 'tools'), eq('price', 24))
+      .fetch();
     expect(wrongType.entities).toEqual([]);
     const tagged = await client.count().where(eq('category', 'tools'), hasType('price', 'dec')).fetch();
     expect(tagged).toBe(3n);
@@ -234,7 +330,9 @@ describe('what a condition can see', () => {
     const fromBob = await client.select({ sku: true }).from(Items).createdBy(bob.address).fetch();
     expect(fromBob.entities.map((row) => row.sku.value).sort()).toEqual(['C-2', 'D-1']);
     expect(await client.count().from(Items).ownedBy(alice.address).fetch()).toBe(6n);
-    expect(await client.count().from(Items).ownedBy(alice.address).where(eq('category', 'books')).fetch()).toBe(1n);
+    expect(
+      await client.count().from(Items).ownedBy(alice.address).where(eq('category', 'books')).fetch(),
+    ).toBe(1n);
     const stranger = privateKeyToAccount(generatePrivateKey());
     expect(await client.count().from(Items).ownedBy(stranger.address).fetch()).toBe(0n);
   });
@@ -243,8 +341,21 @@ describe('what a condition can see', () => {
 describe('sorting and paging', () => {
   it('sorts all matches, ascending or descending, on any sortable type', async () => {
     const client = reader();
-    const byPrice = await client.select({ sku: true, price: true }).from(Items).orderBy(desc('price')).fetch();
-    expect(byPrice.entities.map((row) => row.price.value)).toEqual(['24.5', '24.5', '15.25', '12', '9.99', '3', '0.5', '-1.5']);
+    const byPrice = await client
+      .select({ sku: true, price: true })
+      .from(Items)
+      .orderBy(desc('price'))
+      .fetch();
+    expect(byPrice.entities.map((row) => row.price.value)).toEqual([
+      '24.5',
+      '24.5',
+      '15.25',
+      '12',
+      '9.99',
+      '3',
+      '0.5',
+      '-1.5',
+    ]);
 
     const byListing = await client.select({ sku: true }).from(Items).orderBy(asc('listedAt')).fetch();
     expect(byListing.entities.map((row) => row.sku.value)).toEqual(SEED.map((seed) => seed.sku));
@@ -263,17 +374,45 @@ describe('sorting and paging', () => {
   it('sorts on a non-indexed attribute, placing entities without it below every value', async () => {
     const client = reader();
     const ascending = await client.select({ sku: true, rank: true }).from(Items).orderBy(asc('rank')).fetch();
-    expect(ascending.entities.map((row) => row.rank?.value)).toEqual([undefined, undefined, undefined, undefined, 1, 2, 3, 5]);
+    expect(ascending.entities.map((row) => row.rank?.value)).toEqual([
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      1,
+      2,
+      3,
+      5,
+    ]);
 
-    const descending = await client.select({ sku: true, rank: true }).from(Items).orderBy(desc('rank')).fetch();
-    expect(descending.entities.map((row) => row.rank?.value)).toEqual([5, 3, 2, 1, undefined, undefined, undefined, undefined]);
+    const descending = await client
+      .select({ sku: true, rank: true })
+      .from(Items)
+      .orderBy(desc('rank'))
+      .fetch();
+    expect(descending.entities.map((row) => row.rank?.value)).toEqual([
+      5,
+      3,
+      2,
+      1,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ]);
     expect(descending.entities.slice(0, 4).map((row) => row.sku.value)).toEqual(['C-2', 'A-1', 'B-1', 'A-3']);
   });
 
   it('pages with limit and offset without repeating or missing a row', async () => {
     const client = reader();
     const page = (offset: number) =>
-      client.select({ $key: true, sku: true }).from(Items).orderBy(asc('$key')).limit(3).offset(offset).fetch();
+      client
+        .select({ $key: true, sku: true })
+        .from(Items)
+        .orderBy(asc('$key'))
+        .limit(3)
+        .offset(offset)
+        .fetch();
     const pages = [await page(0), await page(3), await page(6), await page(9)];
     expect(pages.map((p) => p.entities.length)).toEqual([3, 3, 2, 0]);
     const seen = pages.flatMap((p) => p.entities.map((row) => row.sku.value));
@@ -297,7 +436,13 @@ describe('sorting and paging', () => {
   it('counts every match, with or without rows', async () => {
     const client = reader();
     expect(await client.count().from(Items).where(eq('active', true)).fetch()).toBe(5n);
-    const page = await client.select({ sku: true }).from(Items).where(eq('category', 'tools')).withCount().limit(2).fetch();
+    const page = await client
+      .select({ sku: true })
+      .from(Items)
+      .where(eq('category', 'tools'))
+      .withCount()
+      .limit(2)
+      .fetch();
     expect(page.entities).toHaveLength(2);
     expect(page.count).toBe(3n);
     expect(page.blockNumber).toBe(await devnet.blockNumber());
@@ -311,8 +456,15 @@ describe('selection', () => {
     expect(Object.keys(page.entities[0]!)).toEqual(['title']);
     expect(page.entities[0]!.title.value).toBe('Hammer');
 
-    const system = await client.select({ $owner: true, $creator: true, $expiresAt: true }).from(Items).where(eq('sku', 'C-2')).fetch();
-    expect(system.entities[0]).toMatchObject({ $owner: getAddress(bob.address), $creator: getAddress(bob.address) });
+    const system = await client
+      .select({ $owner: true, $creator: true, $expiresAt: true })
+      .from(Items)
+      .where(eq('sku', 'C-2'))
+      .fetch();
+    expect(system.entities[0]).toMatchObject({
+      $owner: getAddress(bob.address),
+      $creator: getAddress(bob.address),
+    });
     expect(typeof system.entities[0]!.$expiresAt).toBe('bigint');
   });
 

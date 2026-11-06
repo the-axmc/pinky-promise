@@ -11,7 +11,16 @@ import {
 } from '@arkiv-network/sdk';
 import { asc, eq } from '@arkiv-network/sdk/query';
 import { addr, bool, bytes, dec, defineSchema, i32, key, str, u64, u256 } from '@arkiv-network/sdk/schema';
-import { type Hex, encodeAbiParameters, getAddress, http, parseAbi, parseAbiParameters, stringToBytes, toHex } from 'viem';
+import {
+  type Hex,
+  encodeAbiParameters,
+  getAddress,
+  http,
+  parseAbi,
+  parseAbiParameters,
+  stringToBytes,
+  toHex,
+} from 'viem';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 // The SDK's client type exposes a curated subset of viem's public actions, so the rest are
 // called as standalone actions.
@@ -138,7 +147,10 @@ describe('create', () => {
     const { entityKey } = await wallet.createEntity(
       Notes,
       { topic: 'flags', text: 'both' },
-      { expiration: ExpirationTime.fromBlocks(500), flags: { readonly: true, permissionlessExtension: true } },
+      {
+        expiration: ExpirationTime.fromBlocks(500),
+        flags: { readonly: true, permissionlessExtension: true },
+      },
     );
     const row = await reader.getEntity(entityKey, Notes);
     expect(row.$creationFlags).toEqual({ readonly: true, permissionlessExtension: true, raw: 3 });
@@ -233,7 +245,9 @@ describe('patch', () => {
       { topic: 'ownership', text: 'alice wrote this' },
       { expiration: ExpirationTime.fromBlocks(500) },
     );
-    await expect(b.wallet.patchEntity(Notes, entityKey, { set: { text: 'bob was here' } })).rejects.toThrow(/is owned by/);
+    await expect(b.wallet.patchEntity(Notes, entityKey, { set: { text: 'bob was here' } })).rejects.toThrow(
+      /is owned by/,
+    );
   });
 });
 
@@ -246,7 +260,10 @@ describe('extend', () => {
       { expiration: ExpirationTime.fromBlocks(100) },
     );
 
-    const extended = await wallet.extendEntity({ entityKey: created.entityKey, expiration: ExpirationTime.fromBlocks(5000) });
+    const extended = await wallet.extendEntity({
+      entityKey: created.entityKey,
+      expiration: ExpirationTime.fromBlocks(5000),
+    });
     expect(extended.expiresAt).toBeGreaterThan(created.expiresAt);
     const row = await reader.getEntity(created.entityKey, Notes);
     expect(row.$expiresAt).toBe(extended.expiresAt);
@@ -275,7 +292,10 @@ describe('extend', () => {
       b.wallet.extendEntity({ entityKey: closed.entityKey, expiration: ExpirationTime.fromBlocks(5000) }),
     ).rejects.toThrow(/is owned by/);
 
-    const extended = await b.wallet.extendEntity({ entityKey: open.entityKey, expiration: ExpirationTime.fromBlocks(5000) });
+    const extended = await b.wallet.extendEntity({
+      entityKey: open.entityKey,
+      expiration: ExpirationTime.fromBlocks(5000),
+    });
     const row = await a.reader.getEntity(open.entityKey, Notes);
     expect(row.$expiresAt).toBe(extended.expiresAt);
     expect(row.$owner).toBe(getAddress(alice.address)); // extending does not change the owner
@@ -298,13 +318,30 @@ describe('ownership', () => {
     expect(row.$owner).toBe(getAddress(bob.address));
     expect(row.$creator).toBe(getAddress(alice.address));
 
-    await expect(a.wallet.patchEntity(Notes, entityKey, { set: { text: 'v2 by alice' } })).rejects.toThrow(/is owned by/);
+    await expect(a.wallet.patchEntity(Notes, entityKey, { set: { text: 'v2 by alice' } })).rejects.toThrow(
+      /is owned by/,
+    );
     await b.wallet.patchEntity(Notes, entityKey, { set: { text: 'v2 by bob' } });
     expect((await a.reader.getEntity(entityKey, Notes)).text.value).toBe('v2 by bob');
 
-    const ownedByBob = await a.reader.select({ $key: true }).from(Notes).where(eq('topic', 'transfer')).ownedBy(bob.address).fetch();
-    const createdByAlice = await a.reader.select({ $key: true }).from(Notes).where(eq('topic', 'transfer')).createdBy(alice.address).fetch();
-    const ownedByAlice = await a.reader.select({ $key: true }).from(Notes).where(eq('topic', 'transfer')).ownedBy(alice.address).fetch();
+    const ownedByBob = await a.reader
+      .select({ $key: true })
+      .from(Notes)
+      .where(eq('topic', 'transfer'))
+      .ownedBy(bob.address)
+      .fetch();
+    const createdByAlice = await a.reader
+      .select({ $key: true })
+      .from(Notes)
+      .where(eq('topic', 'transfer'))
+      .createdBy(alice.address)
+      .fetch();
+    const ownedByAlice = await a.reader
+      .select({ $key: true })
+      .from(Notes)
+      .where(eq('topic', 'transfer'))
+      .ownedBy(alice.address)
+      .fetch();
     expect(ownedByBob.entities.map((r) => r.$key)).toEqual([entityKey]);
     expect(createdByAlice.entities.map((r) => r.$key)).toEqual([entityKey]);
     expect(ownedByAlice.entities).toEqual([]);
@@ -317,7 +354,9 @@ describe('ownership', () => {
       { topic: 'transfer-rules', text: 'x' },
       { expiration: ExpirationTime.fromBlocks(500) },
     );
-    await expect(wallet.changeOwnership({ entityKey, newOwner: alice.address })).rejects.toThrow(/already owned by that account/);
+    await expect(wallet.changeOwnership({ entityKey, newOwner: alice.address })).rejects.toThrow(
+      /already owned by that account/,
+    );
     await expect(
       wallet.changeOwnership({ entityKey, newOwner: '0x0000000000000000000000000000000000000000' }),
     ).rejects.toThrow(/zero address/);
@@ -358,7 +397,12 @@ describe('batch', () => {
     const result = await wallet.executeBatch({
       creates: [
         { schema: Notes, values: { topic: 'batch', text: 'parent' }, expiration, salt: parent!.salt },
-        { schema: Notes, values: { topic: 'batch', text: 'child', parent: key(parent!.key) }, expiration, salt: child!.salt },
+        {
+          schema: Notes,
+          values: { topic: 'batch', text: 'child', parent: key(parent!.key) },
+          expiration,
+          salt: child!.salt,
+        },
       ],
       patches: [{ schema: Notes, entityKey: toPatch, set: { text: 'patched' } }],
       extensions: [{ entityKey: toExtend, expiration: ExpirationTime.fromBlocks(9000) }],
@@ -374,14 +418,22 @@ describe('batch', () => {
     expect((await reader.getEntity(toTransfer, Notes)).$owner).toBe(getAddress(bob.address));
     await expect(reader.getEntity(toDelete)).rejects.toBeInstanceOf(NoEntityFoundError);
 
-    const children = await reader.select({ text: true }).from(Notes).where(eq('parent', key(parent!.key))).fetch();
+    const children = await reader
+      .select({ text: true })
+      .from(Notes)
+      .where(eq('parent', key(parent!.key)))
+      .fetch();
     expect(children.entities.map((row) => row.text.value)).toEqual(['child']);
   });
 
   it('is atomic: one refused operation reverts the whole batch', async () => {
     const { reader, wallet } = clients(alice);
     const expiration = ExpirationTime.fromBlocks(500);
-    const frozen = await wallet.createEntity(Notes, { topic: 'atomic', text: 'readonly' }, { expiration, flags: { readonly: true } });
+    const frozen = await wallet.createEntity(
+      Notes,
+      { topic: 'atomic', text: 'readonly' },
+      { expiration, flags: { readonly: true } },
+    );
     const countBefore = await reader.count().from(Notes).where(eq('topic', 'atomic')).fetch();
     const nonceBefore = await reader.getEntityNonce(alice.address);
 
@@ -423,7 +475,9 @@ describe('expiry', () => {
     const page = await reader.select({ $key: true }).from(Notes).where(eq('topic', 'expiring')).fetch();
     expect(page.entities).toEqual([]);
 
-    await expect(wallet.patchEntity(Notes, created.entityKey, { set: { text: 'too late' } })).rejects.toThrow(/expired/);
+    await expect(wallet.patchEntity(Notes, created.entityKey, { set: { text: 'too late' } })).rejects.toThrow(
+      /expired/,
+    );
     await expect(
       wallet.extendEntity({ entityKey: created.entityKey, expiration: ExpirationTime.fromBlocks(100) }),
     ).rejects.toThrow(/expired/);
@@ -454,11 +508,18 @@ describe('events', () => {
       await clients(bob).wallet.deleteEntity({ entityKey });
 
       const deadline = Date.now() + 5000;
-      while (seen.length < 5 && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 50));
+      while (seen.length < 5 && Date.now() < deadline)
+        await new Promise((resolve) => setTimeout(resolve, 50));
     } finally {
       unwatch();
     }
-    expect(seen).toEqual(['EntityCreated', 'EntityPatched', 'ExpiryExtended', 'OwnershipTransferred', 'EntityDeleted']);
+    expect(seen).toEqual([
+      'EntityCreated',
+      'EntityPatched',
+      'ExpiryExtended',
+      'OwnershipTransferred',
+      'EntityDeleted',
+    ]);
     expect(errors).toEqual([]);
   });
 });
@@ -513,10 +574,19 @@ describe('engine rules the SDK never lets through', () => {
   const createParams = parseAbiParameters(
     '(uint128 salt, uint64 expiresAt, uint64 minLifetime, uint8 creationFlags, (bytes32 name, uint8 typeId, bytes value)[] attributes)',
   );
-  const attribute = (name: string, typeId: number, value: Hex) => ({ name: toHex(name, { size: 32 }), typeId, value });
+  const attribute = (name: string, typeId: number, value: Hex) => ({
+    name: toHex(name, { size: 32 }),
+    typeId,
+    value,
+  });
   const word = (value: bigint) => toHex(value, { size: 32 });
 
-  type Create = Partial<{ expiresAt: bigint; minLifetime: bigint; creationFlags: number; attributes: ReturnType<typeof attribute>[] }>;
+  type Create = Partial<{
+    expiresAt: bigint;
+    minLifetime: bigint;
+    creationFlags: number;
+    attributes: ReturnType<typeof attribute>[];
+  }>;
   const create = (overrides: Create = {}) => ({
     operation: 1,
     operationData: encodeAbiParameters(createParams, [
@@ -527,16 +597,31 @@ describe('engine rules the SDK never lets through', () => {
   async function refusal(ops: { operation: number; operationData: Hex }[]): Promise<string> {
     const { reader } = clients(alice);
     try {
-      await simulateContract(reader, { address: ARKIV_ENGINE_ADDRESS, abi, functionName: 'execute', args: [ops], account: alice.address });
+      await simulateContract(reader, {
+        address: ARKIV_ENGINE_ADDRESS,
+        abi,
+        functionName: 'execute',
+        args: [ops],
+        account: alice.address,
+      });
       return 'accepted';
     } catch (error) {
-      const walked = (error as { walk?: (fn: (e: unknown) => boolean) => unknown }).walk?.((e) => (e as { data?: { errorName?: string } })?.data?.errorName !== undefined);
-      return (walked as { data?: { errorName?: string } } | undefined)?.data?.errorName ?? String((error as Error).message).slice(0, 120);
+      const walked = (error as { walk?: (fn: (e: unknown) => boolean) => unknown }).walk?.(
+        (e) => (e as { data?: { errorName?: string } })?.data?.errorName !== undefined,
+      );
+      return (
+        (walked as { data?: { errorName?: string } } | undefined)?.data?.errorName ??
+        String((error as Error).message).slice(0, 120)
+      );
     }
   }
 
   it('accepts a well-formed create (the control case)', async () => {
-    expect(await refusal([create({ attributes: [attribute('a', 0x88, toHex('x')), attribute('b', 2, word(1n))] })])).toBe('accepted');
+    expect(
+      await refusal([
+        create({ attributes: [attribute('a', 0x88, toHex('x')), attribute('b', 2, word(1n))] }),
+      ]),
+    ).toBe('accepted');
   });
 
   it('rejects an empty batch and an unknown operation tag', async () => {
@@ -546,7 +631,9 @@ describe('engine rules the SDK never lets through', () => {
 
   it('rejects operation data that is not the canonical encoding', async () => {
     const good = create();
-    expect(await refusal([{ operation: 1, operationData: `${good.operationData}00` as Hex }])).toBe('NonCanonicalOperationData');
+    expect(await refusal([{ operation: 1, operationData: `${good.operationData}00` as Hex }])).toBe(
+      'NonCanonicalOperationData',
+    );
     expect(await refusal([{ operation: 1, operationData: '0x1234' }])).toBe('NonCanonicalOperationData');
   });
 
@@ -558,19 +645,35 @@ describe('engine rules the SDK never lets through', () => {
   });
 
   it('rejects reserved names, bad names and tombstones in a create', async () => {
-    expect(await refusal([create({ attributes: [attribute('$owner', 9, word(1n))] })])).toBe('SystemAttributeNotWritable');
-    expect(await refusal([create({ attributes: [attribute('has space', 2, word(1n))] })])).toBe('Ident32InvalidByte');
-    expect(await refusal([create({ attributes: [attribute('9lives', 2, word(1n))] })])).toBe('Ident32InvalidByte');
+    expect(await refusal([create({ attributes: [attribute('$owner', 9, word(1n))] })])).toBe(
+      'SystemAttributeNotWritable',
+    );
+    expect(await refusal([create({ attributes: [attribute('has space', 2, word(1n))] })])).toBe(
+      'Ident32InvalidByte',
+    );
+    expect(await refusal([create({ attributes: [attribute('9lives', 2, word(1n))] })])).toBe(
+      'Ident32InvalidByte',
+    );
     expect(await refusal([create({ attributes: [attribute('gone', 0, '0x')] })])).toBe('TombstoneInCreate');
   });
 
   it('rejects values that do not fit their type', async () => {
-    expect(await refusal([create({ attributes: [attribute('blob', 0x87, '0x00')] })])).toBe('InvalidValueType'); // indexed bytes
-    expect(await refusal([create({ attributes: [attribute('flag', 1, word(2n))] })])).toBe('InvalidValueType'); // bool 2
-    expect(await refusal([create({ attributes: [attribute('n', 2, word(2n ** 40n))] })])).toBe('InvalidValueType'); // i32 too wide
-    expect(await refusal([create({ attributes: [attribute('n', 3, word(2n ** 64n))] })])).toBe('InvalidValueType'); // u64 too wide
+    expect(await refusal([create({ attributes: [attribute('blob', 0x87, '0x00')] })])).toBe(
+      'InvalidValueType',
+    ); // indexed bytes
+    expect(await refusal([create({ attributes: [attribute('flag', 1, word(2n))] })])).toBe(
+      'InvalidValueType',
+    ); // bool 2
+    expect(await refusal([create({ attributes: [attribute('n', 2, word(2n ** 40n))] })])).toBe(
+      'InvalidValueType',
+    ); // i32 too wide
+    expect(await refusal([create({ attributes: [attribute('n', 3, word(2n ** 64n))] })])).toBe(
+      'InvalidValueType',
+    ); // u64 too wide
     expect(await refusal([create({ attributes: [attribute('n', 4, '0x01')] })])).toBe('InvalidValueType'); // not a word
-    expect(await refusal([create({ attributes: [attribute('s', 8, toHex('x'.repeat(129)))] })])).toBe('InvalidValueType'); // str > 128 bytes
+    expect(await refusal([create({ attributes: [attribute('s', 8, toHex('x'.repeat(129)))] })])).toBe(
+      'InvalidValueType',
+    ); // str > 128 bytes
     expect(await refusal([create({ attributes: [attribute('t', 11, word(1n))] })])).toBe('InvalidValueType'); // unknown type
   });
 

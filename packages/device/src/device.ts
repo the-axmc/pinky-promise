@@ -43,7 +43,12 @@ import {
 } from '@pinky/protocol';
 import { keccak256, serializeTransaction } from 'viem';
 import type { DeviceHardware } from './seams';
-import { type PolicyContext, type StoredCheckpoint, type StoredReading, reviewTransaction } from './signing-policy';
+import {
+  type PolicyContext,
+  type StoredCheckpoint,
+  type StoredReading,
+  reviewTransaction,
+} from './signing-policy';
 import type {
   ChainAnchor,
   CheckpointRequest,
@@ -94,7 +99,12 @@ export class Device {
   #state: DeviceState;
   #profile: LotProfile | undefined;
 
-  private constructor(address: Address, hardware: DeviceHardware, storage: DeviceStorage, config: DeviceConfig) {
+  private constructor(
+    address: Address,
+    hardware: DeviceHardware,
+    storage: DeviceStorage,
+    config: DeviceConfig,
+  ) {
     this.address = address;
     this.#hardware = hardware;
     this.#storage = storage;
@@ -103,7 +113,11 @@ export class Device {
     if (this.#state.signedProfile) this.#profile = this.#checkProfile(this.#state.signedProfile);
   }
 
-  static async create(hardware: DeviceHardware, storage: DeviceStorage, config: DeviceConfig): Promise<Device> {
+  static async create(
+    hardware: DeviceHardware,
+    storage: DeviceStorage,
+    config: DeviceConfig,
+  ): Promise<Device> {
     return new Device(await hardware.wallet.address(), hardware, storage, config);
   }
 
@@ -153,7 +167,8 @@ export class Device {
     if (!sameAddress(signer, this.#config.registry)) {
       throw new ProtocolError(`lot profile is signed by ${signer}, not by the registry this device trusts`);
     }
-    if (!sameAddress(profile.device, this.address)) throw new ProtocolError('lot profile is for another device');
+    if (!sameAddress(profile.device, this.address))
+      throw new ProtocolError('lot profile is for another device');
     if (profile.validUntil <= this.#hardware.clock.now()) throw new ProtocolError('lot profile has expired');
     return profile;
   }
@@ -200,7 +215,9 @@ export class Device {
       payload: toHex(payload),
       sig,
       // Without a fix there is nothing to prove, so nothing private to share.
-      ...(fix ? { opening: { latUnits: opening.latUnits, lonUnits: opening.lonUnits, salt: toHex(salt) } } : {}),
+      ...(fix
+        ? { opening: { latUnits: opening.latUnits, lonUnits: opening.lonUnits, salt: toHex(salt) } }
+        : {}),
     };
   }
 
@@ -227,7 +244,10 @@ export class Device {
     let anchorDigest: Hex = ZERO_32;
     if (attestation) {
       const verified = verifyAnchorAttestation(attestation);
-      if (!sameAddress(verified.attestation.device, this.address) || verified.attestation.blockhash !== anchor.blockHash) {
+      if (
+        !sameAddress(verified.attestation.device, this.address) ||
+        verified.attestation.blockhash !== anchor.blockHash
+      ) {
         throw new ProtocolError('venue anchor signed something other than what was asked');
       }
       anchorDigest = toHex(verified.digest);
@@ -298,7 +318,10 @@ export class Device {
       if (decided.decision === 'PENDING') continue;
       const stored = this.#state.checkpoints.find((c) => c.id === decided.id);
       if (stored) stored.decided = true;
-      this.#hardware.display.show({ state: decided.outcome as CheckpointResponse['status'], detail: decided.reason });
+      this.#hardware.display.show({
+        state: decided.outcome as CheckpointResponse['status'],
+        detail: decided.reason,
+      });
     }
     this.#save();
 
@@ -338,7 +361,8 @@ export class Device {
   #save(): void {
     const { readings, checkpoints } = this.#state;
     if (readings.length > MAX_STORED_READINGS) readings.splice(0, readings.length - MAX_STORED_READINGS);
-    if (checkpoints.length > MAX_STORED_CHECKPOINTS) checkpoints.splice(0, checkpoints.length - MAX_STORED_CHECKPOINTS);
+    if (checkpoints.length > MAX_STORED_CHECKPOINTS)
+      checkpoints.splice(0, checkpoints.length - MAX_STORED_CHECKPOINTS);
     this.#storage.save(this.#state);
   }
 
@@ -352,7 +376,8 @@ export class Device {
       maxFeeWei: this.#config.maxFeeWei ?? DEFAULT_MAX_FEE_WEI,
       reading: (digest) => state.readings.find((r) => r.digest === digest.toLowerCase()),
       checkpoint: (id) => state.checkpoints.find((c) => c.id === id.toLowerCase()),
-      readingsInWindow: (first, last) => state.readings.filter((r) => r.reading.seq >= first && r.reading.seq <= last),
+      readingsInWindow: (first, last) =>
+        state.readings.filter((r) => r.reading.seq >= first && r.reading.seq <= last),
     };
   }
 }

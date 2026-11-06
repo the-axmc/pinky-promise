@@ -13,8 +13,12 @@ import { z } from 'zod';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 
-const key = z.string().regex(/^0x[0-9a-fA-F]{64}$/, 'must be a private key: 0x followed by 64 hex characters');
-const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/, 'must be an address: 0x followed by 40 hex characters');
+const key = z
+  .string()
+  .regex(/^0x[0-9a-fA-F]{64}$/, 'must be a private key: 0x followed by 64 hex characters');
+const address = z
+  .string()
+  .regex(/^0x[0-9a-fA-F]{40}$/, 'must be an address: 0x followed by 40 hex characters');
 const flag = z
   .enum(['true', 'false', '1', '0'])
   .default('false')
@@ -26,7 +30,10 @@ const Env = z.object({
   DATA_DIR: z.string().default('.data/gateway'),
   ADMIN_TOKEN: z.string().min(16, 'use at least 16 characters').optional(),
   GATEWAY_DEMO: flag,
-  GEOFENCE_PROOFS: z.enum(['true', 'false', '1', '0']).default('true').transform((value) => value === 'true' || value === '1'),
+  GEOFENCE_PROOFS: z
+    .enum(['true', 'false', '1', '0'])
+    .default('true')
+    .transform((value) => value === 'true' || value === '1'),
 
   REGISTRY_KEY: key,
   GATEWAY_KEY: key,
@@ -84,7 +91,13 @@ export type GatewayConfig = {
   demo: boolean;
   geofenceProofs: boolean;
   keys: { registry: Hex; gateway: Hex; attestor: Hex };
-  arkiv: { rpcUrl?: string; chainId?: number; accessKey?: string; publicRpcUrl?: string; explorerUrl?: string };
+  arkiv: {
+    rpcUrl?: string;
+    chainId?: number;
+    accessKey?: string;
+    publicRpcUrl?: string;
+    explorerUrl?: string;
+  };
   hedera: {
     rpcUrl: string;
     chainId: number;
@@ -108,7 +121,10 @@ export type GatewayConfig = {
 
 /** Loads `.env` from where the command was run, or from the repository root. Existing variables win. */
 export function loadEnvFile(): string | undefined {
-  for (const candidate of [resolve(process.env.INIT_CWD ?? process.cwd(), '.env'), resolve(REPO_ROOT, '.env')]) {
+  for (const candidate of [
+    resolve(process.env.INIT_CWD ?? process.cwd(), '.env'),
+    resolve(REPO_ROOT, '.env'),
+  ]) {
     if (existsSync(candidate)) {
       process.loadEnvFile(candidate);
       return candidate;
@@ -128,7 +144,10 @@ export class ConfigError extends Error {
  * Reads the configuration. `only` limits which variables must be present, for commands that
  * need just a part of it (deploying to Hedera does not need 0G keys).
  */
-export function readConfig(env: NodeJS.ProcessEnv = process.env, only?: ReadonlyArray<keyof z.input<typeof Env>>): GatewayConfig {
+export function readConfig(
+  env: NodeJS.ProcessEnv = process.env,
+  only?: ReadonlyArray<keyof z.input<typeof Env>>,
+): GatewayConfig {
   // An empty value in .env means "not set".
   const present: Record<string, string | undefined> = Object.fromEntries(
     Object.entries(env).filter(([, value]) => value !== undefined && value !== ''),
@@ -141,7 +160,12 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env, only?: Readonly
   }
   const parsed = Env.safeParse(present);
   if (!parsed.success) {
-    throw new ConfigError(parsed.error.issues.map((issue) => `${issue.path.join('.')} ${issue.message.replace(/^Invalid input: expected \w+, received undefined$/, 'is not set')}`));
+    throw new ConfigError(
+      parsed.error.issues.map(
+        (issue) =>
+          `${issue.path.join('.')} ${issue.message.replace(/^Invalid input: expected \w+, received undefined$/, 'is not set')}`,
+      ),
+    );
   }
   const e = parsed.data as z.output<typeof Env>;
   const fromRoot = (path: string) => resolve(REPO_ROOT, path);

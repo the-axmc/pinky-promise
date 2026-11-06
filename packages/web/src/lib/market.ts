@@ -4,11 +4,24 @@
  */
 import type { Address, Hex } from '@pinky/protocol';
 import { atsTokenAbi, receiptMarketAbi } from '@pinky/protocol/hedera';
-import { type Account, type EIP1193Provider, type WalletClient, createWalletClient, custom, http } from 'viem';
+import {
+  type Account,
+  type EIP1193Provider,
+  type WalletClient,
+  createWalletClient,
+  custom,
+  http,
+} from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
 import type { Context } from './config';
 
-export type Listing = { id: bigint; seller: Address; token: Address; unitsLeft: bigint; pricePerUnit: bigint };
+export type Listing = {
+  id: bigint;
+  seller: Address;
+  token: Address;
+  unitsLeft: bigint;
+  pricePerUnit: bigint;
+};
 
 export async function listingsFor(ctx: Context, token: Address): Promise<Listing[]> {
   const [ids, page] = await ctx.hedera.readContract({
@@ -19,7 +32,10 @@ export async function listingsFor(ctx: Context, token: Address): Promise<Listing
   });
   return page
     .map((listing, index) => ({ ...listing, id: ids[index]! }))
-    .filter((listing) => listing.active && listing.unitsLeft > 0n && listing.token.toLowerCase() === token.toLowerCase())
+    .filter(
+      (listing) =>
+        listing.active && listing.unitsLeft > 0n && listing.token.toLowerCase() === token.toLowerCase(),
+    )
     .map(({ id, seller, token: listed, unitsLeft, pricePerUnit }) => ({
       id,
       seller: seller.toLowerCase() as Address,
@@ -91,7 +107,8 @@ export async function requestOnboarding(ctx: Context, assetId: string, address: 
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ assetId, address }),
   });
-  if (!response.ok) throw new Error(`onboarding was refused (${response.status}): ${(await response.text()).slice(0, 200)}`);
+  if (!response.ok)
+    throw new Error(`onboarding was refused (${response.status}): ${(await response.text()).slice(0, 200)}`);
 }
 
 /** Buys units from a listing. Resolves with the transaction hash once it is mined. */
@@ -106,7 +123,11 @@ export async function buy(ctx: Context, buyer: Buyer, listing: Listing, units: b
   } as const;
   // Simulate first: the compliance module's refusal (frozen lot, no KYC) surfaces as a reason.
   await ctx.hedera.simulateContract({ ...call, account: buyer.address });
-  const hash = await buyer.wallet.writeContract({ ...call, account: buyer.wallet.account ?? buyer.address, chain: ctx.hederaChain });
+  const hash = await buyer.wallet.writeContract({
+    ...call,
+    account: buyer.wallet.account ?? buyer.address,
+    chain: ctx.hederaChain,
+  });
   const receipt = await ctx.hedera.waitForTransactionReceipt({ hash });
   if (receipt.status !== 'success') throw new Error(`the purchase reverted (${hash})`);
   return hash;
@@ -119,7 +140,11 @@ export async function buy(ctx: Context, buyer: Buyer, listing: Listing, units: b
 export async function redeem(ctx: Context, holder: Buyer, token: Address, units: bigint): Promise<Hex> {
   const call = { address: token, abi: atsTokenAbi, functionName: 'redeem', args: [units, '0x'] } as const;
   await ctx.hedera.simulateContract({ ...call, account: holder.address });
-  const hash = await holder.wallet.writeContract({ ...call, account: holder.wallet.account ?? holder.address, chain: ctx.hederaChain });
+  const hash = await holder.wallet.writeContract({
+    ...call,
+    account: holder.wallet.account ?? holder.address,
+    chain: ctx.hederaChain,
+  });
   const receipt = await ctx.hedera.waitForTransactionReceipt({ hash });
   if (receipt.status !== 'success') throw new Error(`the redemption reverted (${hash})`);
   return hash;
@@ -127,12 +152,14 @@ export async function redeem(ctx: Context, holder: Buyer, token: Address, units:
 
 /** Custom errors of the token and the market, by selector, in words a buyer can act on. */
 const REFUSALS: Record<string, string> = {
-  '0x66eb1b54': "The token refused the transfer: its compliance rules do not allow trading in the lot's current state (only while a venue holds the goods).",
+  '0x66eb1b54':
+    "The token refused the transfer: its compliance rules do not allow trading in the lot's current state (only while a venue holds the goods).",
 };
 
 /** Turns a failed purchase into one readable sentence. */
 export function explainRefusal(error: unknown): string {
-  const message = (error as { shortMessage?: string }).shortMessage ?? (error as Error).message ?? String(error);
+  const message =
+    (error as { shortMessage?: string }).shortMessage ?? (error as Error).message ?? String(error);
   const selector = /0x[0-9a-f]{8}\b/i.exec(message)?.[0]?.toLowerCase();
   if (selector && REFUSALS[selector]) return REFUSALS[selector]!;
   return message.split('\n').slice(0, 3).join(' ');

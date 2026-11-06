@@ -49,16 +49,16 @@ await devnet.stop();
 `startArkivDevnet(options)` takes `{ port?, anvilPort?, chainId?, blockTime?, quiet? }` (free
 ports, chain id 1337, 2-second blocks and quiet anvil by default) and resolves to:
 
-| Member | Meaning |
-| --- | --- |
-| `rpcUrl` | The proxy URL. Give this to SDK clients and to the browser. |
-| `chainId`, `chain` | The chain id and a viem chain whose default RPC is `rpcUrl`. |
-| `anvilUrl` | The anvil URL, for debugging. It does not answer `arkiv_*` methods. |
-| `fund(address, ether?)` | Sets an account's balance. |
-| `mine(blocks?)` | Mines empty blocks, for example to move past an expiry. |
-| `blockNumber()` | The current block, read straight from the chain. |
-| `restartProxy()` | Restarts the proxy with an empty replica, which it rebuilds from logs. |
-| `stop()` | Closes the proxy and stops the anvil process it started. |
+| Member                  | Meaning                                                                |
+| ----------------------- | ---------------------------------------------------------------------- |
+| `rpcUrl`                | The proxy URL. Give this to SDK clients and to the browser.            |
+| `chainId`, `chain`      | The chain id and a viem chain whose default RPC is `rpcUrl`.           |
+| `anvilUrl`              | The anvil URL, for debugging. It does not answer `arkiv_*` methods.    |
+| `fund(address, ether?)` | Sets an account's balance.                                             |
+| `mine(blocks?)`         | Mines empty blocks, for example to move past an expiry.                |
+| `blockNumber()`         | The current block, read straight from the chain.                       |
+| `restartProxy()`        | Restarts the proxy with an empty replica, which it rebuilds from logs. |
+| `stop()`                | Closes the proxy and stops the anvil process it started.               |
 
 From a terminal:
 
@@ -76,12 +76,12 @@ The same settings can come from `ARKIV_DEVNET_PORT`, `ARKIV_DEVNET_ANVIL_PORT`,
 pnpm --filter @pinky/devnet test
 ```
 
-| Suite | What it covers |
-| --- | --- |
+| Suite                         | What it covers                                                                                                                                                                                                           |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `test/arkiv.entities.test.ts` | Every write operation through the SDK: all column types, explicit and estimated gas, patch, readonly, extend, ownership, delete, atomic batches, expiry, events, replica rebuild, and engine rules sent as raw calldata. |
-| `test/arkiv.query.test.ts` | Queries through the SDK: every operator and type, schema tags, owner/creator, sorting, paging, counting, projections, schema mismatches, raw query strings and `QueryError` kinds. |
-| `test/arkiv.rpc.test.ts` | The JSON on the wire (field order and encodings as Rabdi returns them), error codes, batches, CORS, and running with a block time. |
-| `test/arkiv.language.test.ts` | The query language alone, against error codes, wording and positions captured from Rabdi. |
+| `test/arkiv.query.test.ts`    | Queries through the SDK: every operator and type, schema tags, owner/creator, sorting, paging, counting, projections, schema mismatches, raw query strings and `QueryError` kinds.                                       |
+| `test/arkiv.rpc.test.ts`      | The JSON on the wire (field order and encodings as Rabdi returns them), error codes, batches, CORS, and running with a block time.                                                                                       |
+| `test/arkiv.language.test.ts` | The query language alone, against error codes, wording and positions captured from Rabdi.                                                                                                                                |
 
 ## Rebuilding the engine
 

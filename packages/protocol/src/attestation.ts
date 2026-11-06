@@ -84,7 +84,9 @@ export function encodeDecisionAttestation(attestation: DecisionAttestation): Uin
 
 export function decodeDecisionAttestation(payload: Uint8Array): DecisionAttestation {
   if (payload.length !== ATTESTATION_LENGTH) {
-    throw new ProtocolError(`decision attestation must be ${ATTESTATION_LENGTH} bytes, got ${payload.length}`);
+    throw new ProtocolError(
+      `decision attestation must be ${ATTESTATION_LENGTH} bytes, got ${payload.length}`,
+    );
   }
   if (!equalBytes(payload.subarray(0, 4), ATTESTATION_MAGIC)) {
     throw new ProtocolError('not a PPX1 decision attestation');
