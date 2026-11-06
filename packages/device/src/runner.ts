@@ -59,6 +59,14 @@ export class DeviceRunner {
   async checkpoint(kind: CheckpointKindValue): Promise<CheckpointResponse> {
     const request = await this.device.takeCheckpoint(kind, await this.#freshAnchor());
     const id = toHex(checkpointDigest(fromHex(request.payload)));
+    // The gateway said no (a 4xx): the checkpoint was never accepted, so its readings must be
+    // bundled again next time rather than left behind.
+    const withdrawIfRefused = (error: unknown) => {
+      if (error instanceof LinkError && error.status >= 400 && error.status < 500) {
+        if (this.device.abandonCheckpoint(id))
+          this.#log('checkpoint.withdrawn', { id, status: error.status });
+      }
+    };
     try {
       const response = await this.link.postCheckpoint(request);
       this.#log('checkpoint.sent', { id, status: response.status });
@@ -68,15 +76,23 @@ export class DeviceRunner {
         error instanceof LinkError && error.status === 409
           ? (error.detail.missing as number[] | undefined)
           : undefined;
-      if (!missing?.length) throw error;
-      this.#log('checkpoint.resending', { missing });
-      for (const seq of missing) {
-        const stored = this.device.storedReading(seq);
-        if (stored) await this.link.postReading(stored);
+      if (!missing?.length) {
+        withdrawIfRefused(error);
+        throw error;
       }
-      const response = await this.link.postCheckpoint(request);
-      this.#log('checkpoint.sent', { id, status: response.status });
-      return response;
+      this.#log('checkpoint.resending', { missing });
+      try {
+        for (const seq of missing) {
+          const stored = this.device.storedReading(seq);
+          if (stored) await this.link.postReading(stored);
+        }
+        const response = await this.link.postCheckpoint(request);
+        this.#log('checkpoint.sent', { id, status: response.status });
+        return response;
+      } catch (again) {
+        withdrawIfRefused(again);
+        throw again;
+      }
     }
   }
 

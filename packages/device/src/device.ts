@@ -341,6 +341,30 @@ export class Device {
     return stored ? { payload: toHex(encodeReading(stored.reading)), sig: stored.sig } : undefined;
   }
 
+  /** How many readings are waiting to be bundled into the next checkpoint. */
+  get pendingReadings(): number {
+    return this.#state.readings.filter((r) => r.reading.seq > this.#state.lastCheckpointSeq).length;
+  }
+
+  /**
+   * Withdraws a checkpoint the gateway refused outright (it was never accepted, so nothing was
+   * decided about it). Its readings go back into the window, so the next checkpoint bundles
+   * them: a refused handoff must not let readings escape judgement. The checkpoint's sequence
+   * number stays spent. A checkpoint that already has a decision cannot be withdrawn.
+   */
+  abandonCheckpoint(id: Hex): boolean {
+    const index = this.#state.checkpoints.findIndex((c) => c.id === id.toLowerCase());
+    if (index < 0) return false;
+    const stored = this.#state.checkpoints[index]!;
+    if (stored.decided) throw new ProtocolError('a decided checkpoint cannot be withdrawn');
+    if (this.#state.lastCheckpointSeq !== stored.checkpoint.seq) return false; // not the latest one
+    this.#state.checkpoints.splice(index, 1);
+    this.#state.lastCheckpointSeq = stored.checkpoint.firstSeq - 1;
+    this.#save();
+    this.#hardware.display.show({ state: 'IDLE' });
+    return true;
+  }
+
   /** Shows what the gateway reports for a checkpoint (used while a decision is pending). */
   showStatus(response: CheckpointResponse): void {
     this.#hardware.display.show({ state: response.status, detail: response.reason });

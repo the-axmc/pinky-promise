@@ -43,6 +43,9 @@ import {
 } from 'viem';
 import {
   Device,
+  DeviceRunner,
+  type GatewayLink,
+  LinkError,
   MemoryStorage,
   SimulatedAnchor,
   type SimulatedHardware,
@@ -112,6 +115,63 @@ describe('identity', () => {
     expect(() => device.setProfile(profileFor(`0x${'12'.repeat(20)}`))).toThrow(/another device/);
     expect(() => device.setProfile(profileFor(device.address, { validUntil: NOW - 1 }))).toThrow(/expired/);
     expect(device.profile?.assetId).toBe('LOT-42');
+  });
+});
+
+describe('a handoff the gateway refuses', () => {
+  it('gives its readings back, so the next checkpoint bundles them', async () => {
+    await device.takeReading(anchorBlock); // seq 1
+    const refused = await device.takeCheckpoint(CheckpointKind.DOCK_HANDOFF, anchorBlock); // seq 2
+    const id = toHex(verifyCheckpoint(refused).digest);
+    expect(device.pendingReadings).toBe(0);
+
+    expect(device.abandonCheckpoint(id)).toBe(true);
+    expect(device.pendingReadings).toBe(1);
+    expect(hardware.display.last.state).toBe('IDLE');
+    expect(device.abandonCheckpoint(id)).toBe(false); // already withdrawn
+
+    await device.takeReading(anchorBlock); // seq 3
+    const next = verifyCheckpoint(await device.takeCheckpoint(CheckpointKind.WAREHOUSE_IN, anchorBlock));
+    // The refused checkpoint's number stays spent; its reading is covered again.
+    expect(next.checkpoint).toMatchObject({ seq: 4, firstSeq: 1, lastSeq: 3, readingCount: 2 });
+  });
+
+  it('only withdraws the latest checkpoint', async () => {
+    await device.takeReading(anchorBlock);
+    const first = await device.takeCheckpoint(CheckpointKind.WAREHOUSE_IN, anchorBlock);
+    await device.takeReading(anchorBlock);
+    await device.takeCheckpoint(CheckpointKind.WAREHOUSE_OUT, anchorBlock);
+    expect(device.abandonCheckpoint(toHex(verifyCheckpoint(first).digest))).toBe(false);
+    expect(device.pendingReadings).toBe(0);
+  });
+
+  it('is withdrawn by the runner on a 4xx, and kept on a failure to reach the gateway', async () => {
+    const context = { time: NOW, arkiv: { chainId: CHAIN_ID, anchor: anchorBlock }, profile: null };
+    let answer: () => never = () => {
+      throw new LinkError(409, { error: 'a DOCK_HANDOFF checkpoint cannot be accepted while IN_CUSTODY' });
+    };
+    const link = {
+      context: async () => context,
+      postReading: async () => ({ digest: ZERO_32, accepted: true }),
+      postCheckpoint: async () => answer(),
+      checkpoint: async () => answer(),
+      signRequests: async () => [],
+      postSignatures: async () => {},
+    } as unknown as GatewayLink;
+    const runner = new DeviceRunner(device, link);
+
+    await runner.reading();
+    await expect(runner.checkpoint(CheckpointKind.DOCK_HANDOFF)).rejects.toThrow(
+      /cannot be accepted while IN_CUSTODY/,
+    );
+    expect(device.pendingReadings).toBe(1); // back in the window
+
+    answer = () => {
+      throw new Error('fetch failed');
+    };
+    await expect(runner.checkpoint(CheckpointKind.WAREHOUSE_IN)).rejects.toThrow(/fetch failed/);
+    // Nobody said no: the gateway may have received it, so the device does not take it back.
+    expect(device.pendingReadings).toBe(0);
   });
 });
 
