@@ -14,7 +14,7 @@
 import { createPublicClient, createWalletClient } from '@arkiv-network/sdk';
 import { rabdi } from '@arkiv-network/sdk/chains';
 import type { ChainAnchor, SignRequest, UnsignedTransaction } from '@pinky/device';
-import type { Address, Hex } from '@pinky/protocol';
+import { type Address, type Hex, concat, fromHex, sameAddress, secpRecover } from '@pinky/protocol';
 import {
   type CheckpointInput,
   Checkpoints,
@@ -38,7 +38,7 @@ import {
   venueValues,
 } from '@pinky/protocol/arkiv';
 import type { Venue } from '@pinky/protocol';
-import { type Chain, defineChain, http, serializeTransaction } from 'viem';
+import { type Chain, defineChain, http, keccak256, serializeTransaction } from 'viem';
 import { privateKeyToAccount, toAccount } from 'viem/accounts';
 import { getGasPrice } from 'viem/actions';
 import { DeviceRefusedError, DeviceTimeoutError, type SignRequestQueue } from './sign-requests';
@@ -311,19 +311,26 @@ export class ArkivAdapter {
           const signature = await this.#signRequests.request(device, this.#purpose, unsigned);
           // Serialise exactly the fields the device reviewed, with its signature.
           const serialize = (options?.serializer ?? serializeTransaction) as typeof serializeTransaction;
-          return serialize(
-            {
-              type: 'legacy',
-              chainId: unsigned.chainId,
-              nonce: unsigned.nonce,
-              gas: transaction.gas,
-              gasPrice: transaction.gasPrice,
-              to: unsigned.to,
-              value: transaction.value ?? 0n,
-              data: unsigned.data,
-            },
-            { r: signature.r, s: signature.s, v: 27n + BigInt(signature.yParity), yParity: signature.yParity },
-          );
+          const fields = {
+            type: 'legacy',
+            chainId: unsigned.chainId,
+            nonce: unsigned.nonce,
+            gas: transaction.gas,
+            gasPrice: transaction.gasPrice,
+            to: unsigned.to,
+            value: transaction.value ?? 0n,
+            data: unsigned.data,
+          } as const;
+          // Anyone can post to the signatures endpoint; only the device's signature is used.
+          const signed = concat(fromHex(signature.r, 32), fromHex(signature.s, 32), Uint8Array.of(27 + signature.yParity));
+          const signer = secpRecover(fromHex(keccak256(serializeTransaction(fields)), 32), signed).address;
+          if (!sameAddress(signer, device)) throw new Error('the signature returned for the device is not the device\'s');
+          return serialize(fields, {
+            r: signature.r,
+            s: signature.s,
+            v: 27n + BigInt(signature.yParity),
+            yParity: signature.yParity,
+          });
         },
       });
       wallet = createWalletClient({
