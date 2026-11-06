@@ -1,0 +1,611 @@
+{
+  "source": {
+    "repo": "https://github.com/hashgraph/asset-tokenization-studio",
+    "file": "packages/ats/contracts/deployments/hedera-testnet/newBlr-2026-06-12T11-19-42-198.json",
+    "atsVersion": "8.0.0",
+    "network": "hedera-testnet",
+    "deployedAt": "2026-06-12T11:19:40.755Z"
+  },
+  "infrastructure": {
+    "proxyAdmin": {
+      "address": "0x92664E864200b8fA891195CeEC93880F5Bfa6f22",
+      "contractId": "0.0.9212218"
+    },
+    "blr": {
+      "implementation": "0x86ba690fA76625162501EC1e773056870E56a06D",
+      "implementationContractId": "0.0.9212222",
+      "proxy": "0xBA2D5FC2083A0b8f164c50e65d782087fBA18E0a",
+      "proxyContractId": "0.0.9212226"
+    },
+    "factory": {
+      "implementation": "0xe6E7cd61CAB14d26b80B8181B26F45D181BF7504",
+      "implementationContractId": "0.0.9212655",
+      "proxy": "0xd1F118A40f3b02883D35909eF2517e7EDd78379d",
+      "proxyContractId": "0.0.9213391"
+    }
+  },
+  "configurations": {
+    "equity": {
+      "configId": "0x0000000000000000000000000000000000000000000000000000000000000001",
+      "version": 1,
+      "facetCount": 91
+    },
+    "bond": {
+      "configId": "0x0000000000000000000000000000000000000000000000000000000000000002",
+      "version": 1,
+      "facetCount": 94
+    },
+    "bondFixedRate": {
+      "configId": "0x0000000000000000000000000000000000000000000000000000000000000003",
+      "version": 1,
+      "facetCount": 94
+    },
+    "bondKpiLinkedRate": {
+      "configId": "0x0000000000000000000000000000000000000000000000000000000000000004",
+      "version": 1,
+      "facetCount": 95
+    },
+    "loan": {
+      "configId": "0x0000000000000000000000000000000000000000000000000000000000000006",
+      "version": 1,
+      "facetCount": 90
+    },
+    "loansPortfolio": {
+      "configId": "0x0000000000000000000000000000000000000000000000000000000000000007",
+      "version": 1,
+      "facetCount": 86
+    },
+    "depositToken": {
+      "configId": "0x0000000000000000000000000000000000000000000000000000000000000005",
+      "version": 1,
+      "facetCount": 43
+    },
+    "factory": {
+      "configId": "0x0000000000000000000000000000000000000000000000000000000000000008",
+      "version": 1,
+      "facetCount": 1
+    }
+  },
+  "facets": [
+    {
+      "name": "AccessControlFacet",
+      "address": "0xc4138538F105759c95B02d4A956Da0548B230435",
+      "contractId": "0.0.9212299"
+    },
+    {
+      "name": "AdjustBalancesFacet",
+      "address": "0xF5CDa6Ea35c5d0A07B5F81160D8F4D9c83ED6D38",
+      "contractId": "0.0.9212303"
+    },
+    {
+      "name": "AllowanceFacet",
+      "address": "0xE63139b074190CEC20B22A20AAfB1994c5871b12",
+      "contractId": "0.0.9212314"
+    },
+    {
+      "name": "AmortizationFacet",
+      "address": "0xCc9Fd3B0D286aE102eC5870371D7d06166744C4F",
+      "contractId": "0.0.9212320"
+    },
+    {
+      "name": "BalanceTrackerAdjustedFacet",
+      "address": "0x8D9a5b1c38e37F455B7B60FE7eF0D4A5891D5f5B",
+      "contractId": "0.0.9212325"
+    },
+    {
+      "name": "BalanceTrackerAtSnapshotByPartitionFacet",
+      "address": "0x7864A9C2EDA989537128866e1A3731f5D4E76Db2",
+      "contractId": "0.0.9212333"
+    },
+    {
+      "name": "BalanceTrackerAtSnapshotFacet",
+      "address": "0x97D0fe3D90a9727d9D3CDE3c4C0a9682a4130b40",
+      "contractId": "0.0.9212339"
+    },
+    {
+      "name": "BalanceTrackerByPartitionFacet",
+      "address": "0xBfA52b5E4F611934a84383886a98546a25CEfa30",
+      "contractId": "0.0.9212343"
+    },
+    {
+      "name": "BalanceTrackerFacet",
+      "address": "0x4321F19F59c56B9D2B34C01B5a46001C0f8d92A7",
+      "contractId": "0.0.9212353"
+    },
+    {
+      "name": "BatchBurnFacet",
+      "address": "0xd8427FdC87F9F3DdCcb0b8159F80eC8290444DB4",
+      "contractId": "0.0.9212358"
+    },
+    {
+      "name": "BatchControllerFacet",
+      "address": "0xe622f375eF39687d4b69C6222435eFD7d241F269",
+      "contractId": "0.0.9212367"
+    },
+    {
+      "name": "BatchFreezeFacet",
+      "address": "0x6576Fde7eEc00f861468DcabE6FD4878df2e8C8f",
+      "contractId": "0.0.9212373"
+    },
+    {
+      "name": "BatchMintFacet",
+      "address": "0xD91B73B6ACed1d3Bbe79Aeb8508194Bf40210d48",
+      "contractId": "0.0.9212381"
+    },
+    {
+      "name": "BatchTransferFacet",
+      "address": "0xC61B43adE84d4c949b63b2b1626ffb7F5Df20fA1",
+      "contractId": "0.0.9212392"
+    },
+    {
+      "name": "BurnByPartitionFacet",
+      "address": "0x9F592e69a9162779E2DcD7959156C840EAa1Ba92",
+      "contractId": "0.0.9212400"
+    },
+    {
+      "name": "BurnFacet",
+      "address": "0x138f3Cb0DB1B2B225793cdb87b23f61bdFF649e3",
+      "contractId": "0.0.9212405"
+    },
+    {
+      "name": "CapByPartitionFacet",
+      "address": "0xDF70Ff6EB885AECF07Cc1F3560f056f8859B82c8",
+      "contractId": "0.0.9212414"
+    },
+    {
+      "name": "CapFacet",
+      "address": "0xf217d4AF1Df5c6f6844e4f2b01955aE8E270C62b",
+      "contractId": "0.0.9212425"
+    },
+    {
+      "name": "ClearingAtSnapshotByPartitionFacet",
+      "address": "0xBCf9058830fbfe0BBa379B2ae5962383294ffC9d",
+      "contractId": "0.0.9212431"
+    },
+    {
+      "name": "ClearingAtSnapshotFacet",
+      "address": "0xCeeA6E535e7fF90F394c3e0387d299A0E08e8856",
+      "contractId": "0.0.9212446"
+    },
+    {
+      "name": "ClearingByPartitionFacet",
+      "address": "0xC7BE3F9ADBA3a8006415460510F94E53072d8bd2",
+      "contractId": "0.0.9212459"
+    },
+    {
+      "name": "ClearingFacet",
+      "address": "0x6CA5793D75a74979B31a83D6481d84D3FC72D0FF",
+      "contractId": "0.0.9212482"
+    },
+    {
+      "name": "ClearingHoldByPartitionFacet",
+      "address": "0x5D5e66a2dA237724674012Bf9CCDc23033F337AA",
+      "contractId": "0.0.9212489"
+    },
+    {
+      "name": "ComplianceByPartitionFacet",
+      "address": "0x8b99a28103ACF077E7C7AE7f462651211342EA84",
+      "contractId": "0.0.9212495"
+    },
+    {
+      "name": "ComplianceFacet",
+      "address": "0xA11e2C2FfF048c8b10041883fA577Efd52f6A41A",
+      "contractId": "0.0.9212501"
+    },
+    {
+      "name": "ControllerByPartitionFacet",
+      "address": "0x5a0C883084FeAaacA232D6bba152C5D17BAe3442",
+      "contractId": "0.0.9212507"
+    },
+    {
+      "name": "ControllerFacet",
+      "address": "0xc2DF59bD52F9640C73B4C1a5c0b98c8297f95892",
+      "contractId": "0.0.9212512"
+    },
+    {
+      "name": "ControllerHoldByPartitionFacet",
+      "address": "0xE755ffaf53b82a695D6fe48E5Ec6144Eb462599b",
+      "contractId": "0.0.9212519"
+    },
+    {
+      "name": "ControlListFacet",
+      "address": "0x521C8203377cA326125FBB10758d646a2981377B",
+      "contractId": "0.0.9212528"
+    },
+    {
+      "name": "CoreAdjustedFacet",
+      "address": "0xFCA84980eC31943560cFC208b821e2762375254d",
+      "contractId": "0.0.9212534"
+    },
+    {
+      "name": "CoreAtSnapshotFacet",
+      "address": "0xC9C27e0218cB73abDb43E96921797d9ad9385114",
+      "contractId": "0.0.9212540"
+    },
+    {
+      "name": "CoreFacet",
+      "address": "0x80fE843C9287c2116f3f805D85e119Fbaf24Ec1F",
+      "contractId": "0.0.9212543"
+    },
+    {
+      "name": "CorporateActionsFacet",
+      "address": "0x3a8B9c5ebF1503a61EAa038723040903EFDc0072",
+      "contractId": "0.0.9212547"
+    },
+    {
+      "name": "CouponFacet",
+      "address": "0x44b6ad69e6223E94f33d284eFa7ff6BC5FeA12B9",
+      "contractId": "0.0.9212549"
+    },
+    {
+      "name": "CouponListingFacet",
+      "address": "0xFF8E07389e01df5c07E9e62b7dB0b248b267FA65",
+      "contractId": "0.0.9212556"
+    },
+    {
+      "name": "CouponSecurityHoldersFacet",
+      "address": "0x80f49b7836651a3978B1399F1327c4D99c0017d0",
+      "contractId": "0.0.9212560"
+    },
+    {
+      "name": "CustomDataFacet",
+      "address": "0xa68b8A517F957a3aAD25c3521D5d7b975B973e45",
+      "contractId": "0.0.9212567"
+    },
+    {
+      "name": "DeactivateFacet",
+      "address": "0x959b4cE70BEEa4395C49d270efb33cC58cDb09fb",
+      "contractId": "0.0.9212580"
+    },
+    {
+      "name": "DiamondFacet",
+      "address": "0xE93c47b013CBF3BCc088d760108e7c10cAa6A16c",
+      "contractId": "0.0.9212589"
+    },
+    {
+      "name": "DividendFacet",
+      "address": "0x6b56966186333bFC9190DBd64487dB8224B01e57",
+      "contractId": "0.0.9212593"
+    },
+    {
+      "name": "DividendSecurityHoldersFacet",
+      "address": "0x4944be8f69E486d41Ca8FfC2aF456724A150b560",
+      "contractId": "0.0.9212601"
+    },
+    {
+      "name": "DocumentationFacet",
+      "address": "0x8222faE4417eEF303E589E33E73613f822c32C7D",
+      "contractId": "0.0.9212607"
+    },
+    {
+      "name": "EIP712Facet",
+      "address": "0xe7dEC7109d16cCB242aF26441CC63dF7A337BC6b",
+      "contractId": "0.0.9212616"
+    },
+    {
+      "name": "ERC20PermitFacet",
+      "address": "0xBDe16Ae4373d6bB6fcDC4dC42E690F40ae0B70dB",
+      "contractId": "0.0.9212618"
+    },
+    {
+      "name": "ERC20VotesFacet",
+      "address": "0xE69Eb60C3e63BEe97876E426154E72cB3B17CF1F",
+      "contractId": "0.0.9212623"
+    },
+    {
+      "name": "ExternalControlListManagementFacet",
+      "address": "0xAF51Ddeb8A0f4a79ef740f93CB27551464D78D39",
+      "contractId": "0.0.9212633"
+    },
+    {
+      "name": "ExternalKycListManagementFacet",
+      "address": "0x40d717B5C85cafcf4EE41BA2CFc007e35C417698",
+      "contractId": "0.0.9212641"
+    },
+    {
+      "name": "ExternalPauseManagementFacet",
+      "address": "0x86530871EEE4e20c97efB0B8bCc018672B07fCc2",
+      "contractId": "0.0.9212645"
+    },
+    {
+      "name": "FactoryFacet",
+      "address": "0xe6E7cd61CAB14d26b80B8181B26F45D181BF7504",
+      "contractId": "0.0.9212655"
+    },
+    {
+      "name": "FixedRateFacet",
+      "address": "0xb37556378D32f9446D1093642B42609bD0006CfC",
+      "contractId": "0.0.9212663"
+    },
+    {
+      "name": "FreezeAtSnapshotByPartitionFacet",
+      "address": "0x601c7f6280518C64D1b247Cf8df7e6e911405452",
+      "contractId": "0.0.9212671"
+    },
+    {
+      "name": "FreezeAtSnapshotFacet",
+      "address": "0x16d018aeb520599a320b1186233Ef87FB5D6b8fE",
+      "contractId": "0.0.9212680"
+    },
+    {
+      "name": "FreezeFacet",
+      "address": "0x1Ca6A83477191174E9049F0B54BfBfAE632684a3",
+      "contractId": "0.0.9212688"
+    },
+    {
+      "name": "HoldAtSnapshotByPartitionFacet",
+      "address": "0x06eFb494d10589CfF114D84934ddaC0ac97CFD9a",
+      "contractId": "0.0.9212691"
+    },
+    {
+      "name": "HoldAtSnapshotFacet",
+      "address": "0xB0478247e2d7b284a99CFA8eEc54a76A46279898",
+      "contractId": "0.0.9212700"
+    },
+    {
+      "name": "HoldByPartitionFacet",
+      "address": "0xDBa367F98dbCCd789a785f4519b5Cd83CAbC7A4b",
+      "contractId": "0.0.9212710"
+    },
+    {
+      "name": "HoldFacet",
+      "address": "0x0d616D33D7C7295bbDd2D95c14BC211c12652112",
+      "contractId": "0.0.9212716"
+    },
+    {
+      "name": "IdentityFacet",
+      "address": "0x5bBd36e995347C8f5ac9887e2c86992F74767023",
+      "contractId": "0.0.9212720"
+    },
+    {
+      "name": "InitializerFacet",
+      "address": "0xdC2936d60be30fCA62f5358A8131E06844b1461B",
+      "contractId": "0.0.9212728"
+    },
+    {
+      "name": "InterestRateFacet",
+      "address": "0xb6F60050dE69C3BEB2f2c8FfD6f653E134E09DB5",
+      "contractId": "0.0.9212735"
+    },
+    {
+      "name": "KpiLinkedRateFacet",
+      "address": "0x7c31E27cAD47979c913167f4df418d44063D2919",
+      "contractId": "0.0.9212745"
+    },
+    {
+      "name": "KpisFacet",
+      "address": "0xf5e158884831A8c4541347B5BB3d42E201F7d7e2",
+      "contractId": "0.0.9212755"
+    },
+    {
+      "name": "KycFacet",
+      "address": "0x645199fb25Df3da4aaD82625825E98AD6a7Ba91D",
+      "contractId": "0.0.9212763"
+    },
+    {
+      "name": "LoanFacet",
+      "address": "0xcb0A40Ff0eF9AFCA3CaF5B90a56fef5Ec6f2E96f",
+      "contractId": "0.0.9212767"
+    },
+    {
+      "name": "LoansPortfolioFacet",
+      "address": "0x05636Ef9fB62F8BEa2A22182f3Fe1514C854441b",
+      "contractId": "0.0.9212774"
+    },
+    {
+      "name": "LockAtSnapshotByPartitionFacet",
+      "address": "0x6b442CaD9c8Aa06167CAC61fc12b3aA982D8196D",
+      "contractId": "0.0.9212780"
+    },
+    {
+      "name": "LockAtSnapshotFacet",
+      "address": "0xaC54862f10A6901998eD099a36e3571484135988",
+      "contractId": "0.0.9212787"
+    },
+    {
+      "name": "LockByPartitionFacet",
+      "address": "0xcDfEB6Bb7393FDAEA85f6b398D226718F512b4C3",
+      "contractId": "0.0.9212793"
+    },
+    {
+      "name": "LockFacet",
+      "address": "0x6e30Aec69DB5F4B6c7d73F4B15D1BdAC24CcE792",
+      "contractId": "0.0.9212798"
+    },
+    {
+      "name": "MaturityByPartitionFacet",
+      "address": "0xebe0a2D69D0bac37d8bFe670eE9D6155d3919f9C",
+      "contractId": "0.0.9212804"
+    },
+    {
+      "name": "MaturityFacet",
+      "address": "0xE2cFB7C5AA6bF09cAbf24209f634959206054973",
+      "contractId": "0.0.9212808"
+    },
+    {
+      "name": "MintByPartitionFacet",
+      "address": "0x643b7001856e9d8824B65df21E32bDC46352f269",
+      "contractId": "0.0.9212815"
+    },
+    {
+      "name": "MintFacet",
+      "address": "0x7585CDCF24136d96C0F3ee470532A202C3497463",
+      "contractId": "0.0.9212820"
+    },
+    {
+      "name": "NominalValueAtSnapshotFacet",
+      "address": "0x0491cA57e76517dead74A59DC1a79425231CfF64",
+      "contractId": "0.0.9212826"
+    },
+    {
+      "name": "NominalValueFacet",
+      "address": "0xd585a24Ef235290b6F97186A330176b240EABDa7",
+      "contractId": "0.0.9212832"
+    },
+    {
+      "name": "NoncesFacet",
+      "address": "0x867Adf59CFD6e037C080C21Cb7D8744066d6c677",
+      "contractId": "0.0.9212840"
+    },
+    {
+      "name": "OperatorByPartitionFacet",
+      "address": "0xffe823Be079CE09c30534547eB42f6335e879D77",
+      "contractId": "0.0.9212849"
+    },
+    {
+      "name": "OperatorClearingByPartitionFacet",
+      "address": "0x3af4aD1965c7a368771c0A7f38c6831bb8481ea4",
+      "contractId": "0.0.9212858"
+    },
+    {
+      "name": "OperatorClearingHoldByPartitionFacet",
+      "address": "0xEF799212C790494e8Fc547276F2F371D43E4fA04",
+      "contractId": "0.0.9212865"
+    },
+    {
+      "name": "OperatorFacet",
+      "address": "0xE6d6E7FA82E11749763Af3400E15081ed0b1c75A",
+      "contractId": "0.0.9212872"
+    },
+    {
+      "name": "OperatorHoldByPartitionFacet",
+      "address": "0x23aD2c2F722307aaA2C1EA0492F2B44402f9d813",
+      "contractId": "0.0.9212881"
+    },
+    {
+      "name": "PartitionsFacet",
+      "address": "0xC2d12A18D859558258E16Afa72Ad8Cd8A520943E",
+      "contractId": "0.0.9212895"
+    },
+    {
+      "name": "PauseFacet",
+      "address": "0xA659bb0109D3049b359174549C7e3B520e62745c",
+      "contractId": "0.0.9212903"
+    },
+    {
+      "name": "PrincipalFacet",
+      "address": "0x54e2e22FF60c6BB75517Ae0D9931Dfdb2c68a4Ea",
+      "contractId": "0.0.9212914"
+    },
+    {
+      "name": "ProceedRecipientsFacet",
+      "address": "0x5522A32Bc999a42D2b463fE0B9B9501857c7298B",
+      "contractId": "0.0.9212924"
+    },
+    {
+      "name": "ProceedRecipientsKpiLinkedRateFacet",
+      "address": "0xCBf14D2d0A507e79cA2f5d33a648526a383a5955",
+      "contractId": "0.0.9212936"
+    },
+    {
+      "name": "ProtectedByPartitionFacet",
+      "address": "0x2E76D7d8F65427EEd66d980A524903f4025da9e8",
+      "contractId": "0.0.9212945"
+    },
+    {
+      "name": "ProtectedClearingByPartitionFacet",
+      "address": "0x4bBD4fC4973eD387E1E2e7604A5b6c45509332C2",
+      "contractId": "0.0.9212957"
+    },
+    {
+      "name": "ProtectedClearingHoldByPartitionFacet",
+      "address": "0xa25a6127cD1B0870b4507A92738387D40D60aE09",
+      "contractId": "0.0.9212967"
+    },
+    {
+      "name": "ProtectedHoldByPartitionFacet",
+      "address": "0x447Dc512EEE3de8adE2081442CE3ef8437f22267",
+      "contractId": "0.0.9212978"
+    },
+    {
+      "name": "ProtectedPartitionsFacet",
+      "address": "0xBeb2Dfd58B10aa42a0B43da9B2d5D418D8Ef571a",
+      "contractId": "0.0.9212988"
+    },
+    {
+      "name": "RecoveryFacet",
+      "address": "0x550f999ACf2dc75f782D105811564E1eDde191D6",
+      "contractId": "0.0.9212999"
+    },
+    {
+      "name": "ScheduledBalanceAdjustmentFacet",
+      "address": "0xeb21Be81901fDc9b3fb4d0B7f9e3CEb47B30234a",
+      "contractId": "0.0.9213011"
+    },
+    {
+      "name": "ScheduledCrossOrderedTasksFacet",
+      "address": "0x096B273834D72d0CB84aa4B1aA6a8ADAe10226be",
+      "contractId": "0.0.9213019"
+    },
+    {
+      "name": "ScheduledCrossOrderedTasksKpiLinkedRateFacet",
+      "address": "0x2db5F8cf34aeA37DF507Bc87Bde6746675542c22",
+      "contractId": "0.0.9213031"
+    },
+    {
+      "name": "SecurityHoldersAtSnapshotFacet",
+      "address": "0x73D223541544b2C0c3CBc371D4ec43714Fccc758",
+      "contractId": "0.0.9213039"
+    },
+    {
+      "name": "SecurityHoldersFacet",
+      "address": "0xf8416572Dc40a6ac5132d79ADB4AB3C7E866c44f",
+      "contractId": "0.0.9213046"
+    },
+    {
+      "name": "SnapshotsByPartitionFacet",
+      "address": "0x2c5884Cf0Fc06621A589457d64E3086eC69f5Bd2",
+      "contractId": "0.0.9213058"
+    },
+    {
+      "name": "SnapshotsFacet",
+      "address": "0x3109e40E86352880b2569b719e9d05E818b4Be37",
+      "contractId": "0.0.9213070"
+    },
+    {
+      "name": "SsiManagementFacet",
+      "address": "0x609a27f59F60f835dc21F6B171dB1f191ef19F4f",
+      "contractId": "0.0.9213079"
+    },
+    {
+      "name": "TransferAndLockByPartitionFacet",
+      "address": "0x3105F0cDDeAda22382b939d0619AB2F6a4A7A668",
+      "contractId": "0.0.9213089"
+    },
+    {
+      "name": "TransferAndLockFacet",
+      "address": "0x110aEb5Aa050b7013AdBc9A1B373708BDCFcB2e1",
+      "contractId": "0.0.9213100"
+    },
+    {
+      "name": "TransferAndLockFixedRateFacet",
+      "address": "0x2aF622Ff7B983BD8353360943f7b03F35E741814",
+      "contractId": "0.0.9213108"
+    },
+    {
+      "name": "TransferAndLockKpiLinkedRateFacet",
+      "address": "0xf316F2a2439315000242bE50d0293c7804f6Eb74",
+      "contractId": "0.0.9213117"
+    },
+    {
+      "name": "TransferByPartitionFacet",
+      "address": "0xb38e2fd2866F96F48F8118cEc3850540ebd33C26",
+      "contractId": "0.0.9213130"
+    },
+    {
+      "name": "TransferFacet",
+      "address": "0x2E33a471c12072E64e465Bf2AacfDd150121cB33",
+      "contractId": "0.0.9213141"
+    },
+    {
+      "name": "VotingFacet",
+      "address": "0x8eAAFa7E0E72Ea9A9A08E6FB499702b55aBDf3e4",
+      "contractId": "0.0.9213153"
+    },
+    {
+      "name": "VotingSecurityHoldersFacet",
+      "address": "0x97B66bAeC37E321E488f6e82A78917a8a63B5aA9",
+      "contractId": "0.0.9213160"
+    }
+  ]
+}

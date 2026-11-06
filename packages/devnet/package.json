@@ -1,0 +1,14 @@
+{
+  "name": "@pinky/devnet",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local stand-ins for Hedera (ATS snapshot on anvil), Arkiv and 0G so the whole flow runs offline.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "snapshot:ats": "tsx src/hedera/snapshot-ats.ts"
+  }
+}

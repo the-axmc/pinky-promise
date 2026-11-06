@@ -1,0 +1,3 @@
+# Generated snapshot of the ATS contracts deployed on Hedera testnet (see
+# packages/devnet/src/hedera/snapshot-ats.ts). One long line of JSON: never diff it.
+contracts/fixtures/ats-hedera-testnet.alloc.json linguist-generated=true -diff
