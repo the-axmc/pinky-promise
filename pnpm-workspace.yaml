@@ -1,18 +1,13 @@
 packages:
   - "packages/*"
 
-# pnpm blocks dependency install scripts unless they are listed here.
-# esbuild (used by tsx, vite and vitest) is the only one we need to build.
-onlyBuiltDependencies:
-  - esbuild
-
-# Optional native accelerators pulled in transitively. Everything works
-# without them (pure-JS fallbacks), so their install scripts stay off.
-ignoredBuiltDependencies:
-  - bufferutil
-  - es5-ext
-  - msgpackr-extract
-  - utf-8-validate
-
+# pnpm 11 blocks dependency install scripts unless each one is decided here.
 allowBuilds:
-  esbuild: set this to true or false
+  # Used by tsx, vite and vitest; its install script fetches the platform binary.
+  esbuild: true
+  # Optional native accelerators pulled in transitively. Everything works
+  # without them (pure-JS fallbacks), so their install scripts stay off.
+  bufferutil: false
+  es5-ext: false
+  msgpackr-extract: false
+  utf-8-validate: false
