@@ -1,0 +1,19 @@
+# Dev-only: the Solidity stand-in for Arkiv's native entity engine, used by the local devnet.
+# It is never deployed to a real network. Kept apart from the top-level contracts/ project so
+# the two builds never touch each other's out/ and cache/.
+[profile.default]
+src = "src"
+out = "out"
+cache_path = "cache"
+libs = []
+solc = "0.8.28"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 200
+via_ir = true
+
+[fmt]
+line_length = 110
+
+[lint]
+lint_on_build = false

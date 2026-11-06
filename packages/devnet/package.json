@@ -10,7 +10,9 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p .",
     "test": "vitest run",
-    "snapshot:ats": "tsx src/hedera/snapshot-ats.ts"
+    "snapshot:ats": "tsx src/hedera/snapshot-ats.ts",
+    "arkiv": "tsx src/arkiv/cli.ts",
+    "build:arkiv-engine": "tsx src/arkiv/build-engine.ts"
   },
   "dependencies": {
     "@arkiv-network/sdk": "1.0.1",
