@@ -11,3 +11,5 @@ allowBuilds:
   es5-ext: false
   msgpackr-extract: false
   utf-8-validate: false
+  # Ships prebuilt binaries for the common platforms; compiling is only a fallback.
+  "@serialport/bindings-cpp": false
