@@ -131,8 +131,15 @@ describe('what the buyer page reads and checks', () => {
       ['Written by the device wallet', true],
       ['Checkpoint signed by the device', true],
       ["Decision attested by the lot's attestor", true],
+      ['Every reading it was judged on is published', true],
       ["Venue anchor co-signed (the device was in the venue's radio range)", true],
     ]);
+    // A reading that was signed but never published shows as a gap.
+    const withheld = checkCheckpoint(record, view.lot, view.venues, view.readings.slice(1));
+    expect(withheld[3]).toEqual({ ok: false, label: 'Every reading it was judged on is published', detail: '1 of 2 readings are on Arkiv' });
+    // And one swapped for another does not hash to what the device committed to.
+    const swapped = checkCheckpoint(record, view.lot, view.venues, [view.readings[0]!, { ...view.readings[1]!, digest: view.readings[0]!.digest }]);
+    expect(swapped[3]).toMatchObject({ ok: false });
     // A decision attested by anyone but the lot's attestor does not count.
     const otherAttestor = { ...view.lot, attestor: `0x${'77'.repeat(20)}` as Hex };
     expect(checkCheckpoint(record, otherAttestor, view.venues)[2]).toMatchObject({ ok: false });

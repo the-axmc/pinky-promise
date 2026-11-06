@@ -117,7 +117,7 @@ export async function loadLot(ctx: Context, assetId: string, vkHash: Hex): Promi
       .map((record) => {
         const venue = record.venueHash ? venueByHash.get(record.venueHash) : undefined;
         const disclosed = disclosedBreach(record, lot);
-        return { ...record, checks: checkCheckpoint(record, lot, venues), ...(venue ? { venue } : {}), ...(disclosed ? { disclosed } : {}) };
+        return { ...record, checks: checkCheckpoint(record, lot, venues, readings), ...(venue ? { venue } : {}), ...(disclosed ? { disclosed } : {}) };
       }),
     proofs: proofs
       .sort((a, b) => a.seq - b.seq)

@@ -8,6 +8,7 @@ import {
   type Hex,
   fromHex,
   isInRange,
+  readingsRoot,
   requestIdHash,
   sameAddress,
   secpVerify,
@@ -79,7 +80,7 @@ export function disclosedBreach(record: CheckpointEntity, lot: LotEntity): Discl
 }
 
 /** Is a custody record signed by the device, and its decision attested by the lot's attestor? */
-export function checkCheckpoint(record: CheckpointEntity, lot: LotEntity, venues: VenueEntity[]): Check[] {
+export function checkCheckpoint(record: CheckpointEntity, lot: LotEntity, venues: VenueEntity[], readings: ReadingEntity[] = []): Check[] {
   const checks: Check[] = [
     attempt('Written by the device wallet', () => sameAddress(record.creator, lot.deviceId) || `created by ${record.creator}`),
     attempt('Checkpoint signed by the device', () => {
@@ -103,6 +104,17 @@ export function checkCheckpoint(record: CheckpointEntity, lot: LotEntity, venues
       if (record.zgRequestId && attestation.requestIdHash !== requestIdHash(record.zgRequestId)) return 'request id does not match the attested hash';
       if (record.episodeRoot && attestation.episodeRoot !== record.episodeRoot) return 'episode root does not match the attested one';
       return true;
+    }),
+  );
+  checks.push(
+    // The checkpoint commits to the readings it was judged on. If one of them was never
+    // published, the count is short or the hashes do not add up: withholding shows.
+    attempt('Every reading it was judged on is published', () => {
+      const { checkpoint } = verifyCheckpoint({ payload: record.payload, sig: record.sig });
+      const window = readings.filter((reading) => reading.seq >= checkpoint.firstSeq && reading.seq <= checkpoint.lastSeq).sort((x, y) => x.seq - y.seq);
+      if (window.length !== checkpoint.readingCount) return `${window.length} of ${checkpoint.readingCount} readings are on Arkiv`;
+      const root = toHex(readingsRoot(window.map((reading) => fromHex(reading.digest, 32))));
+      return root === checkpoint.readingsRoot || 'the published readings do not hash to what the device committed to';
     }),
   );
   if (record.breach) {
