@@ -307,6 +307,12 @@ export class Device {
     };
   }
 
+  /** A reading as it was signed, for resending one the gateway did not receive. */
+  storedReading(seq: number): ReadingRequest | undefined {
+    const stored = this.#state.readings.find((r) => r.reading.seq === seq);
+    return stored ? { payload: toHex(encodeReading(stored.reading)), sig: stored.sig } : undefined;
+  }
+
   /** Shows what the gateway reports for a checkpoint (used while a decision is pending). */
   showStatus(response: CheckpointResponse): void {
     this.#hardware.display.show({ state: response.status, detail: response.reason });
