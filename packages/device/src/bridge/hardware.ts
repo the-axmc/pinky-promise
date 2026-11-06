@@ -249,10 +249,16 @@ export class CompositeSeal implements SealSource {
 export class BoardAnchor implements AnchorSource {
   readonly #board: BoardClient;
   readonly #onProblem: ((reason: string) => void) | undefined;
+  readonly #minRssi: number | undefined;
 
-  constructor(board: BoardClient, options: { onProblem?: (reason: string) => void } = {}) {
+  /**
+   * `minRssi` (dBm, e.g. -70) tightens "in radio range" for an anchor reached over BLE: a
+   * weaker signal counts as no anchor. It has no effect on an anchor plugged in over USB.
+   */
+  constructor(board: BoardClient, options: { onProblem?: (reason: string) => void; minRssi?: number } = {}) {
     this.#board = board;
     this.#onProblem = options.onProblem;
+    this.#minRssi = options.minRssi;
   }
 
   async attest(request: { device: Address; blockhash: Hex }): Promise<SignedAnchorAttestation | null> {
@@ -262,6 +268,9 @@ export class BoardAnchor implements AnchorSource {
         { device: bare(request.device), blockhash: bare(request.blockhash) },
         15_000,
       );
+      if (this.#minRssi !== undefined && answer.rssi !== undefined && answer.rssi < this.#minRssi) {
+        throw new ProtocolError(`anchor heard at ${answer.rssi} dBm, weaker than the ${this.#minRssi} dBm required`);
+      }
       const payload = fromHex(hex(answer.payload));
       const signer = addressFromPublicKey(fromHex(hex(answer.pubkey), 64));
       const sig = toRecoverable(sha256(payload), fromHex(hex(answer.sig), 64), signer);

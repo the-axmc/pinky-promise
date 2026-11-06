@@ -113,6 +113,8 @@ export type HardwareSources = {
   onStatus?: (status: DeviceStatus) => void;
   /** Hears why a real anchor did not answer. */
   onAnchorProblem?: (reason: string) => void;
+  /** Weakest BLE signal (dBm) at which a real anchor still counts as in range. */
+  minAnchorRssi?: number;
 };
 
 export type AssembledHardware = {
@@ -166,6 +168,7 @@ export function assembleHardware(plan: HardwarePlan, sources: HardwareSources = 
   if (plan.anchor === 'board') {
     anchor = new BoardAnchor(sources.anchorBoard ?? board('venue anchor'), {
       ...(sources.onAnchorProblem ? { onProblem: sources.onAnchorProblem } : {}),
+      ...(sources.minAnchorRssi !== undefined ? { minRssi: sources.minAnchorRssi } : {}),
     });
   } else if (plan.anchor === 'sim') anchor = sources.simulatedAnchor ?? noAnchor;
   else anchor = noAnchor;

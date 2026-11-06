@@ -50,7 +50,11 @@ export type BoardCommands = {
   'climate.read': { request: {}; response: { temp_centi: number; rh_centi: number } };
 
   /** GPS module (NMEA over UART): position in 1e-7 degrees, and how old the fix is. */
-  'gps.read': { request: {}; response: { fix: boolean; lat_e7?: number; lon_e7?: number; sats?: number; age_ms?: number } };
+  'gps.read': {
+    request: {};
+    /** `chars` counts NMEA characters received so far: 0 means the module is not talking (RX/TX). */
+    response: { fix: boolean; lat_e7?: number; lon_e7?: number; sats?: number; age_ms?: number; chars?: number };
+  };
 
   /** ATECC608B: serial number (9 bytes), the P-256 public key of slot 0 (64 bytes), lock state. */
   'se.info': { request: {}; response: { serial: string; pubkey: string; locked: boolean } };

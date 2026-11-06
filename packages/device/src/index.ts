@@ -7,3 +7,5 @@ export * from './sim/hardware';
 export * from './link';
 export * from './runner';
 export * from './bridge/index';
+export * from './probe';
+export * from './session';
