@@ -1,0 +1,25 @@
+{
+  "name": "pinky-promise",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Onchain sensor oracle: a pocket device signs cold-chain readings, 0G decides custody handoffs, Arkiv stores the evidence, and a Hedera ATS warehouse receipt freezes itself on a confirmed breach.",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=22.10"
+  },
+  "scripts": {
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present --workspace-concurrency=1 test",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md,sol}\" --ignore-path .gitignore",
+    "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\" --ignore-path .gitignore"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}
