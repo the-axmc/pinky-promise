@@ -1,0 +1,6 @@
+[package]
+name = "geofence"
+type = "bin"
+authors = ["pinky-promise"]
+
+[dependencies]
