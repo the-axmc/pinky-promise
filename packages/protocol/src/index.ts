@@ -11,3 +11,4 @@ export * from './lot';
 export * from './policy';
 
 export * from './vectors';
+export * from './episode';
