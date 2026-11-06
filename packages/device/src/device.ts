@@ -137,7 +137,12 @@ export class Device {
 
   /** Accepts a lot assignment, but only if the registry signed it and it names this device. */
   setProfile(signed: SignedLotProfile): LotProfile {
+    const previous = this.#profile;
     this.#profile = this.#checkProfile(signed);
+    if (previous && previous.assetId !== this.#profile.assetId) {
+      // Readings taken for the previous lot are no part of this lot's first checkpoint.
+      this.#state.lastCheckpointSeq = this.#state.seq;
+    }
     this.#state.signedProfile = signed;
     this.#save();
     return this.#profile;

@@ -108,6 +108,26 @@ describe('identity', () => {
   });
 });
 
+describe('reassignment', () => {
+  it('starts a new checkpoint window when the device moves to another lot', async () => {
+    await device.takeReading(anchorBlock);
+    await device.takeReading(anchorBlock);
+    device.setProfile(profileFor(device.address, { assetId: 'LOT-43' }));
+    // The two readings belong to LOT-42; LOT-43 has none yet.
+    await expect(device.takeCheckpoint(CheckpointKind.WAREHOUSE_IN, anchorBlock)).rejects.toThrow(/at least one reading/);
+    await device.takeReading(anchorBlock);
+    const { checkpoint } = verifyCheckpoint(await device.takeCheckpoint(CheckpointKind.WAREHOUSE_IN, anchorBlock));
+    expect(checkpoint).toMatchObject({ assetId: 'LOT-43', firstSeq: 3, lastSeq: 3, readingCount: 1 });
+  });
+
+  it('keeps the window when the same lot is confirmed again', async () => {
+    await device.takeReading(anchorBlock);
+    device.setProfile(profileFor(device.address, { tempMaxCenti: 900 }));
+    const { checkpoint } = verifyCheckpoint(await device.takeCheckpoint(CheckpointKind.WAREHOUSE_IN, anchorBlock));
+    expect(checkpoint).toMatchObject({ assetId: 'LOT-42', firstSeq: 1, readingCount: 1 });
+  });
+});
+
 describe('readings', () => {
   it('signs what the sensors report, with a private opening for the position', async () => {
     const request = await device.takeReading(anchorBlock);
