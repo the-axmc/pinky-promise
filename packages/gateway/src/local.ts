@@ -49,6 +49,11 @@ export type LocalStackOptions = {
   arkivBlockTime?: number;
   /** Fixed ports for the three networks, so a browser can be pointed at them. */
   ports?: { arkiv?: number; arkivAnvil?: number; hedera?: number; zg?: number };
+  /**
+   * Ask the real 0G Compute Router for decisions while the chains stay local. Without it the
+   * stand-in model is used, which cannot see: it recognises only the simulator's two pictures.
+   */
+  zg?: { baseUrl: string; apiKey: string; model: string; verifyTee?: boolean };
   gateway?: Partial<GatewayOptions>;
   log?: GatewayOptions['log'];
 };
@@ -103,7 +108,9 @@ export async function startLocalStack(options: LocalStackOptions = {}): Promise<
       pollingIntervalMs: 50,
     });
 
-    const zgClient = new ZgDecisionClient({ mode: 'mock', baseUrl: zg.baseUrl, apiKey: 'local-dev', model: MOCK_MODEL });
+    const zgClient = options.zg
+      ? new ZgDecisionClient({ mode: 'router', ...options.zg })
+      : new ZgDecisionClient({ mode: 'mock', baseUrl: zg.baseUrl, apiKey: 'local-dev', model: MOCK_MODEL });
     const episodeDir = options.dataDir ? join(options.dataDir, 'zg-storage') : join(process.cwd(), '.data', `zg-storage-${process.pid}`);
     if (options.dataDir) mkdirSync(options.dataDir, { recursive: true });
     const store = new GatewayStore(options.dataDir ? join(options.dataDir, 'gateway.json') : undefined);
@@ -120,7 +127,7 @@ export async function startLocalStack(options: LocalStackOptions = {}): Promise<
     const publicConfig: PublicConfig = {
       arkiv: { rpcUrl: arkivNet.rpcUrl, chainId: arkivNet.chainId, registry: arkiv.registry },
       hedera: { rpcUrl: hederaNet.rpcUrl, chainId: hederaNet.chainId, oracle: hederaNet.oracle, market: hederaNet.market },
-      zg: { mode: 'mock', model: MOCK_MODEL, storage: 'local' },
+      zg: options.zg ? { mode: 'router', model: options.zg.model, storage: 'local' } : { mode: 'mock', model: MOCK_MODEL, storage: 'local' },
       attestor: gateway.attestor,
       gateway: arkiv.gateway,
       demo: true,
