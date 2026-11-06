@@ -112,6 +112,19 @@ export async function buy(ctx: Context, buyer: Buyer, listing: Listing, units: b
   return hash;
 }
 
+/**
+ * Redeems units: the holder takes delivery and the units are burned. The token allows it while
+ * a venue holds the goods and after final delivery, never in transit or while frozen.
+ */
+export async function redeem(ctx: Context, holder: Buyer, token: Address, units: bigint): Promise<Hex> {
+  const call = { address: token, abi: atsTokenAbi, functionName: 'redeem', args: [units, '0x'] } as const;
+  await ctx.hedera.simulateContract({ ...call, account: holder.address });
+  const hash = await holder.wallet.writeContract({ ...call, account: holder.wallet.account ?? holder.address, chain: ctx.hederaChain });
+  const receipt = await ctx.hedera.waitForTransactionReceipt({ hash });
+  if (receipt.status !== 'success') throw new Error(`the redemption reverted (${hash})`);
+  return hash;
+}
+
 /** Custom errors of the token and the market, by selector, in words a buyer can act on. */
 const REFUSALS: Record<string, string> = {
   '0x66eb1b54': "The token refused the transfer: its compliance rules do not allow trading in the lot's current state (only while a venue holds the goods).",

@@ -14,7 +14,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { type Context, connect } from '../src/lib/config';
 import { fetchDemoViewKey, fetchEpisode } from '../src/lib/episode';
 import { type LotView, listLots, loadLot, verifyProof } from '../src/lib/lot';
-import { buy, demoWallet, holdingOf, listingsFor, paymentValue } from '../src/lib/market';
+import { buy, demoWallet, explainRefusal, holdingOf, listingsFor, paymentValue, redeem } from '../src/lib/market';
 import { allOk, checkCheckpoint, checkLot, checkReading } from '../src/lib/verify';
 
 const ASSET = 'LOT-7';
@@ -178,6 +178,19 @@ describe('what the buyer page reads and checks', () => {
     const wallet = createWalletClient({ chain: ctx.hederaChain, transport: http(), account: privateKeyToAccount(outsider.privateKey) });
     await expect(buy(ctx, { address: outsider.address.toLowerCase() as Hex, wallet, kind: 'browser' }, listing!, 1n)).rejects.toThrow();
     expect((await listingsFor(ctx, view.onChain!.token))[0]!.unitsLeft).toBe(35n);
+  });
+
+  it('redeems units: they are burned and the supply shrinks', async () => {
+    const buyer = demoWallet(ctx)!;
+    const token = view.onChain!.token;
+    await redeem(ctx, buyer, token, 2n);
+    expect(await holdingOf(ctx, token, buyer.address)).toMatchObject({ free: 3n });
+    expect((await loadLot(ctx, ASSET, GEOFENCE_VK_HASH))!.onChain!.totalSupply).toBe(98n);
+  });
+
+  it('explains a refusal by the token in words', () => {
+    expect(explainRefusal(new Error('The contract function "buy" reverted with the following signature: 0x66eb1b54'))).toMatch(/compliance rules do not allow trading/);
+    expect(explainRefusal(new Error('insufficient funds\nfor gas'))).toBe('insufficient funds for gas');
   });
 
   it('scales the payment for Hedera, where contracts count in tinybar', () => {

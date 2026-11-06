@@ -8,7 +8,7 @@ import { type Context, connect, explorerLink } from './lib/config';
 import { type OpenedEpisode, fetchDemoViewKey, fetchEpisode } from './lib/episode';
 import { celsius, clock, coins, dateTime, percent, shortHex } from './lib/format';
 import { type LotView, listLots, loadLot, verifyProof } from './lib/lot';
-import { type Buyer, type Holding, type Listing, browserWallet, buy, demoWallet, explainRefusal, holdingOf, listingsFor, requestOnboarding } from './lib/market';
+import { type Buyer, type Holding, type Listing, browserWallet, buy, demoWallet, explainRefusal, holdingOf, listingsFor, redeem, requestOnboarding } from './lib/market';
 import { allOk } from './lib/verify';
 
 const DEFAULT_GATEWAY = (import.meta.env.VITE_GATEWAY_URL as string | undefined) ?? 'http://127.0.0.1:8787';
@@ -593,6 +593,17 @@ function BuyPanel({ ctx, view, onChanged }: { ctx: Context; view: LotView; onCha
         </div>
       ) : token ? (
         <p className="muted">Nothing is offered on the market right now.</p>
+      ) : null}
+
+      {buyer && token && holding && holding.free > 0n && (onChain?.state === 'DELIVERED' || onChain?.state === 'IN_CUSTODY') ? (
+        <div className="offer">
+          <p>
+            {onChain?.state === 'DELIVERED' ? 'The lot was delivered. ' : ''}Redeeming hands in your units in exchange for the goods; the units are burned.
+          </p>
+          <button className="ghost" disabled={busy} onClick={() => act('Redeemed', async () => `Redeemed ${holding.free} units · tx ${shortHex(await redeem(ctx, buyer, token, holding.free), 8, 6)}`)}>
+            Redeem my {String(holding.free)} units
+          </button>
+        </div>
       ) : null}
 
       {message ? <p className={`banner banner-${message.tone}`}>{message.text}</p> : null}
