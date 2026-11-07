@@ -225,10 +225,16 @@ export class Gateway {
     if (existing) return existing;
     const device = this.store.device(input.device);
     if (!device) throw new GatewayError(404, `device ${input.device} is not enrolled`);
-    if (
-      Object.values(this.store.lots).some((lot) => lot.device === device.address && lot.endsAt > nowSeconds())
-    ) {
-      throw new GatewayError(409, 'this device is already assigned to a lot');
+    // A device follows one lot at a time. It is free again once that lot is delivered (or over).
+    for (const lot of Object.values(this.store.lots)) {
+      if (lot.device !== device.address || lot.endsAt <= nowSeconds()) continue;
+      const onChain = await this.hedera.lot(lot.assetId);
+      if (onChain?.state !== LotState.DELIVERED) {
+        throw new GatewayError(
+          409,
+          `this device is still assigned to lot ${lot.assetId}, which has not been delivered`,
+        );
+      }
     }
     const thresholds: Thresholds = {
       tempMinCenti: input.tempMinCenti,
@@ -332,7 +338,10 @@ export class Gateway {
 
   async context(deviceAddress: Address): Promise<DeviceContext> {
     const device = this.#device(deviceAddress);
-    const lot = Object.values(this.store.lots).find((candidate) => candidate.device === device.address);
+    // The device's current lot is the one it was assigned to last.
+    const lot = Object.values(this.store.lots)
+      .filter((candidate) => candidate.device === device.address)
+      .at(-1);
     return {
       time: nowSeconds(),
       arkiv: { chainId: this.arkiv.chain.id, anchor: await this.arkiv.anchor() },
@@ -606,18 +615,37 @@ export class Gateway {
       .finally(() => this.#busy.delete(key));
   }
 
-  /** Resolves when nothing is queued or running (for tests and scripted runs). */
-  async idle(timeoutMs = 60_000): Promise<void> {
+  /**
+   * Resolves when nothing is queued or running (for tests and scripted runs). With `device`,
+   * only that device's readings and checkpoints count, so one stuck lot does not hold up another.
+   */
+  async idle(timeoutMs = 60_000, scope: { device?: Address } = {}): Promise<void> {
     const deadline = Date.now() + timeoutMs;
+    const mine = (address: Address) => !scope.device || sameAddress(address, scope.device);
     for (;;) {
-      const work =
-        this.#busy.size > 0 ||
-        Object.values(this.store.readings).some((r) => r.arkiv === 'queued' || r.proof === 'queued') ||
-        Object.values(this.store.checkpoints).some(
-          (c) => c.stage !== 'APPLIED' && c.stage !== 'FAILED' && c.stage !== 'AWAITING_DECISION',
-        );
-      if (!work) return;
-      if (Date.now() > deadline) throw new Error('gateway did not become idle in time');
+      const readings = Object.values(this.store.readings).filter((r) => mine(r.device));
+      const checkpoints = Object.values(this.store.checkpoints).filter((c) => mine(c.device));
+      const pending = [
+        ...readings.filter((r) => r.arkiv === 'queued').map((r) => `reading #${r.seq} not yet on Arkiv`),
+        ...readings
+          .filter((r) => r.proof === 'queued')
+          .map((r) => `proof for reading #${r.seq} not yet made`),
+        ...checkpoints
+          .filter((c) => c.stage !== 'APPLIED' && c.stage !== 'FAILED' && c.stage !== 'AWAITING_DECISION')
+          .map((c) => `checkpoint ${c.id.slice(0, 10)}… at stage ${c.stage}`),
+        ...[...this.#busy]
+          .filter((key) => {
+            if (key === 'prove') return readings.some((r) => r.proof === 'queued');
+            if (key.startsWith('publish:')) return mine(key.slice('publish:'.length) as Address);
+            const id = key.replace('checkpoint:', '');
+            return checkpoints.some((c) => c.id === id);
+          })
+          .map((key) => `worker ${key} running`),
+      ];
+      if (pending.length === 0) return;
+      if (Date.now() > deadline) {
+        throw new Error(`gateway did not become idle in ${timeoutMs} ms: ${pending.join('; ')}`);
+      }
       this.#kick();
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
