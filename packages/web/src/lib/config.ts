@@ -31,6 +31,9 @@ export async function connect(gatewayUrl: string): Promise<Context> {
   const response = await fetch(`${base}/v1/config`);
   if (!response.ok) throw new Error(`the gateway at ${base} answered ${response.status}`);
   const config = (await response.json()) as PublicConfig;
+  // A hosted demo relays its stand-in chains through its own origin, as relative paths.
+  config.arkiv.rpcUrl = new URL(config.arkiv.rpcUrl, `${base}/`).href;
+  config.hedera.rpcUrl = new URL(config.hedera.rpcUrl, `${base}/`).href;
 
   const arkivChain = defineChain({
     id: config.arkiv.chainId,
