@@ -14,7 +14,8 @@
     "demo": "tsx src/demo.ts",
     "doctor": "tsx src/doctor.ts",
     "deploy:hedera": "tsx src/deploy.ts",
-    "arkiv:query": "tsx src/query.ts"
+    "arkiv:query": "tsx src/query.ts",
+    "devnets": "tsx src/devnets.ts"
   },
   "dependencies": {
     "@0gfoundation/0g-storage-ts-sdk": "1.2.13",

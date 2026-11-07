@@ -7,6 +7,7 @@
  *   pnpm demo --interactive           you drive the device from the keyboard
  *   pnpm demo --port /dev/cu.usb…     same, with the real parts of a board (rest simulated)
  *   pnpm demo --port mock             same, through the in-memory board (exercises the bridge)
+ *   pnpm demo --live                  the same journey on the networks named in .env (testnets)
  *
  * It starts the local stack on fixed ports, registers two venues, enrols the device, creates
  * the lot and its receipt token, then either plays the journey or hands you the keys. The stack
@@ -27,7 +28,6 @@ import {
   openDeviceSession,
   runInteractive,
 } from '@pinky/device';
-import { hederaDevChain } from '@pinky/devnet';
 import {
   type Address,
   CheckpointKind,
@@ -43,13 +43,12 @@ import {
 import { atsTokenAbi, receiptMarketAbi } from '@pinky/protocol/hedera';
 import { http, createPublicClient, createWalletClient, parseEther } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { type LocalStack, startLocalStack } from './local';
+import { ConfigError } from './config';
+import { type DemoStack, liveDemoStack, localDemoStack } from './demo-stack';
 
-const ASSET = 'LOT-42';
 const ORIGIN = { venueId: 'WH-MUM-01', name: 'Mumbai cold store', latDeg: 19.076, lonDeg: 72.8777 };
 const DOCK = { venueId: 'DK-PNQ-02', name: 'Pune receiving dock', latDeg: 18.5204, lonDeg: 73.8567 };
 const ROAD = { latDeg: 18.8, lonDeg: 73.3 };
-const PORTS = { gateway: 8787, arkiv: 8645, arkivAnvil: 8646, hedera: 8745, zg: 8845 };
 /** A cold-chain pharma pallet: 2–8 °C, 20–70 % relative humidity. */
 const COLD_CHAIN = { tempMinCenti: 200, tempMaxCenti: 800, rhMinCenti: 2000, rhMaxCenti: 7000 };
 
@@ -82,26 +81,29 @@ async function main(): Promise<void> {
   const flags = parseFlags(process.argv.slice(2));
   if (flags.help)
     return console.log(
-      'pnpm demo [--pause [seconds]] [--interactive] [--port <port|mock>] [--anchor-port <port|mock>] [--sim parts] [--photos dir] [--temp-range min:max] [--once] [--verbose]',
+      'pnpm demo [--live] [--lot <id>] [--pause [seconds]] [--interactive] [--port <port|mock>] [--anchor-port <port|mock>] [--sim parts] [--photos dir] [--temp-range min:max] [--once] [--verbose]',
     );
 
-  const zgEnv =
-    process.env.ZG_ROUTER_URL && process.env.ZG_API_KEY && process.env.ZG_MODEL
-      ? { baseUrl: process.env.ZG_ROUTER_URL, apiKey: process.env.ZG_API_KEY, model: process.env.ZG_MODEL }
-      : undefined;
-
-  say('starting the local stack: Arkiv node, Hedera (real ATS contracts), 0G stand-in, gateway…');
-  const stack = await startLocalStack({
-    port: PORTS.gateway,
-    ports: { arkiv: PORTS.arkiv, arkivAnvil: PORTS.arkivAnvil, hedera: PORTS.hedera, zg: PORTS.zg },
-    ...(zgEnv ? { zg: zgEnv } : {}),
-    gateway: { retryBaseMs: 500, retryMaxMs: 2_000 },
-    ...(flags.verbose
-      ? {
-          log: (event, detail) => console.log(`          · ${event} ${detail ? JSON.stringify(detail) : ''}`),
-        }
-      : {}),
-  });
+  const log: Parameters<typeof localDemoStack>[0] = flags.verbose
+    ? { log: (event, detail) => console.log(`          · ${event} ${detail ? JSON.stringify(detail) : ''}`) }
+    : {};
+  const live = Boolean(flags.live);
+  say(
+    live
+      ? 'starting the gateway against the networks in .env…'
+      : 'starting the local stack: Arkiv node, Hedera (real ATS contracts), 0G stand-in, gateway…',
+  );
+  const stack: DemoStack = live ? await liveDemoStack(log) : await localDemoStack(log);
+  // A lot id is used once on a real network: the token and the oracle entry are permanent.
+  const now = new Date();
+  const two = (value: number) => String(value).padStart(2, '0');
+  const ASSET =
+    text(flags, 'lot') ??
+    (live
+      ? `LOT-${two(now.getUTCMonth() + 1)}${two(now.getUTCDate())}-${two(now.getUTCHours())}${two(now.getUTCMinutes())}`
+      : 'LOT-42');
+  /** Real networks answer in seconds, not milliseconds. */
+  const patience = live ? 300_000 : 90_000;
 
   let session: DeviceSession | undefined;
   let shuttingDown: Promise<void> | undefined;
@@ -117,10 +119,11 @@ async function main(): Promise<void> {
 
   try {
     console.log(`
-  gateway API      ${stack.url}            (admin token: ${stack.adminToken})
-  Arkiv RPC        ${stack.arkiv.rpcUrl}   chain ${stack.arkiv.chainId}
+  ${stack.live ? `LIVE — settings from ${stack.envFile ?? 'the environment'}` : 'LOCAL — stand-ins on this machine; nothing leaves it'}
+  gateway API      ${stack.url}            (admin token: ${stack.live ? 'from ADMIN_TOKEN' : stack.adminToken})
+  Arkiv RPC        ${stack.arkiv.rpcUrl}   chain ${stack.arkiv.chainId}   registry ${stack.registry}
   Hedera RPC       ${stack.hedera.rpcUrl}   chain ${stack.hedera.chainId}   oracle ${stack.hedera.oracle}
-  decisions        ${zgEnv ? `0G Compute Router, model ${zgEnv.model}` : 'stand-in model (recorded as "dev-mock", never as 0G)'}
+  decisions        ${stack.decisions}
 `);
 
     // --- the device ---------------------------------------------------------------------------
@@ -144,7 +147,7 @@ async function main(): Promise<void> {
     session = await openDeviceSession({
       provisioning: {
         registry: stack.registry,
-        attestor: stack.publicConfig.attestor,
+        attestor: stack.attestor,
         arkivChainId: stack.arkiv.chainId,
       },
       ...(text(flags, 'port') ? { port: text(flags, 'port')! } : {}),
@@ -265,7 +268,7 @@ async function main(): Promise<void> {
       label: 'Pocket sensor #1',
     });
     say('device enrolled: its certificate chains the wallet to the secure element');
-    const { depositor, buyer } = stack.hedera.accounts;
+    const { depositor, buyer } = stack.hedera;
     const lot = await admin('/lots', {
       assetId: ASSET,
       title: 'Cold-chain pharma pallet #42',
@@ -277,10 +280,12 @@ async function main(): Promise<void> {
       disputeWindowS: 14 * 86_400,
       depositor: depositor.address,
     });
-    await admin(`/lots/${ASSET}/investors`, { address: buyer.address });
+    if (buyer) await admin(`/lots/${ASSET}/investors`, { address: buyer });
     say(
-      `lot ${ASSET} created: receipt token ${lot.token} (ATS), 100 units, ${band}, buyer ${buyer.address} allow-listed`,
+      `lot ${ASSET} created: receipt token ${lot.token} (ATS), 100 units, ${band}${buyer ? `, buyer ${buyer} allow-listed` : ''}`,
     );
+    const tokenLink = stack.gateway.hedera.explorerLink('contract', lot.token);
+    if (stack.live && tokenLink) say(`   token on the explorer: ${tokenLink}`);
 
     const runner = new DeviceRunner(device, new HttpGatewayLink(stack.url));
     await runner.sync();
@@ -315,19 +320,27 @@ async function main(): Promise<void> {
       return { ...taken, inRange: ok };
     };
 
-    const handoff = async (kind: CheckpointKindValue, timeoutMs = 90_000) => {
+    const handoff = async (kind: CheckpointKindValue, timeoutMs = patience) => {
       const sent = await runner.checkpoint(kind);
       say(`   ${checkpointKindName(kind)} sent: ${sent.status} — not accepted until a decision arrives`);
       const decided = await runner.awaitDecision(sent.checkpointId, { timeoutMs });
-      await stack.gateway.idle();
+      await stack.gateway.idle(patience, { device: device.address });
       say(
         `   decision: ${decided.status}${decided.decision ? ` (${decided.decision})` : ''}${decided.reason ? ` — ${decided.reason}` : ''}`,
       );
       return decided;
     };
 
-    const hederaChain = hederaDevChain(stack.hedera.rpcUrl, stack.hedera.chainId);
-    const hederaPublic = createPublicClient({ chain: hederaChain, transport: http(), pollingInterval: 100 });
+    const hederaChain = stack.hedera.chain;
+    const hederaPublic = createPublicClient({
+      chain: hederaChain,
+      transport: http(),
+      pollingInterval: stack.live ? 2_000 : 100,
+    });
+    // 0.02 HBAR a unit. On Hedera a contract counts in tinybar (8 decimals), elsewhere in wei.
+    const unitPrice = [295, 296, 297].includes(stack.hedera.chainId) ? 2_000_000n : parseEther('0.02');
+    /** The safe stop can be rehearsed unless a real model decides for a local stack. */
+    const canCutZg = stack.live || !stack.realModel;
     const listOnMarket = async (units: bigint, pricePerUnit: bigint) => {
       const onChain = await stack.gateway.hedera.lot(ASSET);
       if (!onChain) return;
@@ -351,7 +364,7 @@ async function main(): Promise<void> {
           args: [onChain.token, units, pricePerUnit],
         }),
       ]) {
-        await hederaPublic.waitForTransactionReceipt({ hash });
+        await hederaPublic.waitForTransactionReceipt({ hash, timeout: 180_000 });
       }
       say(`   the depositor listed ${units} units on the market`);
     };
@@ -373,7 +386,7 @@ async function main(): Promise<void> {
       }
     };
 
-    const stopSigning = runner.startSigning(150);
+    const stopSigning = runner.startSigning(stack.live ? 500 : 150);
 
     if (flags.interactive) {
       act('Your turn');
@@ -383,7 +396,7 @@ async function main(): Promise<void> {
       );
       let outage = false;
       const whatNext = async () => {
-        await stack.gateway.idle();
+        await stack.gateway.idle(patience, { device: device.address });
         await report();
         const state = (await stack.gateway.hedera.lot(ASSET))?.state;
         const next =
@@ -422,10 +435,12 @@ async function main(): Promise<void> {
           o: {
             help: 'cut 0G off / bring it back (rehearse the safe stop)',
             run: () => {
-              if (zgEnv)
-                return say('decisions come from the real 0G Router: the outage rehearsal needs the stand-in');
+              if (!canCutZg)
+                return say(
+                  'a real model decides for a local stack here: run with --live to rehearse the outage',
+                );
               outage = !outage;
-              stack.zg.setMode(outage ? 'down' : 'up');
+              stack.setOutage(outage);
               say(outage ? '0G is now UNREACHABLE: handoffs stay PENDING' : '0G is reachable again');
             },
           },
@@ -439,7 +454,7 @@ async function main(): Promise<void> {
           },
           m: {
             help: 'depositor: list 40 units on the market',
-            run: () => listOnMarket(40n, parseEther('0.02')),
+            run: () => listOnMarket(40n, unitPrice),
           },
           s: { help: 'show the lot on Hedera', run: report },
         },
@@ -461,7 +476,7 @@ async function main(): Promise<void> {
         '(with a real camera and the stand-in model this is expected: it cannot see. Use --sim camera, or set ZG_* for the real model.)',
       );
     } else {
-      await listOnMarket(40n, parseEther('0.02'));
+      await listOnMarket(40n, unitPrice);
 
       // The receipt trades only while a venue holds the goods: this is the moment to buy.
       await pause(
@@ -495,11 +510,11 @@ async function main(): Promise<void> {
       act('4. Destination dock: 0G is unreachable — safe stop');
       place('dock', 610);
       await reading();
-      if (zgEnv) {
-        say('(decisions come from the real 0G Router, so the outage is not rehearsed here)');
+      if (!canCutZg) {
+        say('(a real model decides for a local stack here, so the outage is not rehearsed: use --live)');
         await handoff(CheckpointKind.DOCK_HANDOFF);
       } else {
-        stack.zg.setMode('down');
+        stack.setOutage(true);
         const sent = await runner.checkpoint(CheckpointKind.DOCK_HANDOFF);
         const waiting = await runner.awaitDecision(sent.checkpointId, { timeoutMs: 5_000 });
         say(`   DOCK_HANDOFF sent with 0G down: ${waiting.status} — ${waiting.reason ?? 'no decision'}`);
@@ -509,9 +524,9 @@ async function main(): Promise<void> {
         await report();
 
         act('5. 0G answers again: the handoff is judged on the evidence');
-        stack.zg.setMode('up');
-        const decided = await runner.awaitDecision(sent.checkpointId, { timeoutMs: 90_000 });
-        await stack.gateway.idle();
+        stack.setOutage(false);
+        const decided = await runner.awaitDecision(sent.checkpointId, { timeoutMs: patience });
+        await stack.gateway.idle(patience, { device: device.address });
         say(
           `   decision: ${decided.status}${decided.decision ? ` (${decided.decision})` : ''}${decided.reason ? ` — ${decided.reason}` : ''}`,
         );
@@ -541,15 +556,29 @@ async function main(): Promise<void> {
     say(
       `readings published on Arkiv: ${status.readings.published}/${status.readings.total}; checkpoints: ${status.checkpoints.map((c) => c.outcome ?? c.stage).join(', ')}`,
     );
+    if (stack.live) {
+      const onChain = await stack.gateway.hedera.lot(ASSET);
+      console.log(`
+  For the README and the submission forms:
+
+    Arkiv writer — registry (Device, Venue, Lot)    ${stack.registry}
+    Arkiv writer — device (Reading, Checkpoint)     ${device.address}
+    Arkiv writer — gateway (GeoProof)               ${stack.gateway.arkiv.gateway}
+    Hedera — CustodyOracle                          ${stack.hedera.oracle}
+    Hedera — ReceiptMarket                          ${stack.hedera.market}
+    Hedera — receipt token of ${ASSET.padEnd(21)} ${onChain?.token ?? '—'}
+    Runnable query                                  pnpm arkiv:query --lot ${ASSET} --out-of-range
+`);
+    }
     await stopSigning();
     if (flags.once) return shutdown();
 
     console.log(`
-  The stack is still running. Open the buyer page in another terminal:
+  The gateway is still running. Open the buyer page in another terminal:
 
       pnpm web          then  http://localhost:5173
 
-  Ctrl-C stops everything (the local chains keep no state).
+  Ctrl-C stops it${stack.live ? '. What was written to the networks stays there.' : ' (the local chains keep no state).'}
 `);
     // Stays up until a signal arrives; the handler above shuts everything down.
     await new Promise<never>(() => {});
@@ -563,7 +592,11 @@ main().then(
   () => process.exit(0),
   (error) => {
     const message = String((error as Error).message ?? error);
-    if (/in use|EADDRINUSE|anvil exited/i.test(message)) {
+    if (error instanceof ConfigError) {
+      console.error(
+        `\n${message}\n\n--live reads .env (see .env.example). \`pnpm doctor\` checks it without sending anything.`,
+      );
+    } else if (/in use|EADDRINUSE|anvil exited/i.test(message)) {
       console.error(
         `\n${message}\n\nA port the demo needs is taken, most likely by an earlier demo that is still running.\nStop it (Ctrl-C in its terminal), or clear leftover local chains with: pkill anvil`,
       );
