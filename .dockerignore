@@ -1,0 +1,21 @@
+# Secrets and local state must never reach an image.
+.env
+.env.*
+!.env.example
+.data
+
+.git
+**/node_modules
+**/dist
+
+# Not needed to run the demo.
+firmware
+docs
+arkiv
+contracts/lib
+contracts/out
+contracts/cache
+packages/devnet/contracts/out
+packages/devnet/contracts/cache
+*.log
+.DS_Store

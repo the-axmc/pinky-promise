@@ -1,0 +1,32 @@
+# The hosted demo on Fly.io. Steps: docs/showcase.md, section G.
+# App names are global: if this one is taken, change it here too.
+app = "pinky-promise-demo"
+primary_region = "bom"
+
+[env]
+  PORT = "8080"
+  DATA_DIR = "/data/gateway"
+
+# Keeps the gateway's state, including each lot's view key, across restarts on live networks.
+[mounts]
+  source = "pinky_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Stand-in chains live in memory, and judges should not wait for a cold start.
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    path = "/health"
+    interval = "15s"
+    timeout = "5s"
+    grace_period = "30s"
+
+# Generating a location proof takes more memory than the rest of the stack put together.
+[[vm]]
+  size = "shared-cpu-2x"
+  memory = "2gb"
