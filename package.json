@@ -21,7 +21,8 @@
     "deploy:hedera": "pnpm --silent --filter @pinky/gateway deploy:hedera",
     "web": "pnpm --silent --filter @pinky/web dev",
     "arkiv:query": "pnpm --silent --filter @pinky/gateway arkiv:query",
-    "devnets": "pnpm --silent --filter @pinky/gateway devnets"
+    "devnets": "pnpm --silent --filter @pinky/gateway devnets",
+    "showcase": "pnpm --silent --filter @pinky/gateway showcase"
   },
   "devDependencies": {
     "@types/node": "^22.18.0",
