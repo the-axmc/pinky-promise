@@ -22,7 +22,8 @@
     "web": "pnpm --silent --filter @pinky/web dev",
     "arkiv:query": "pnpm --silent --filter @pinky/gateway arkiv:query",
     "devnets": "pnpm --silent --filter @pinky/gateway devnets",
-    "showcase": "pnpm --silent --filter @pinky/gateway showcase"
+    "showcase": "pnpm --silent --filter @pinky/gateway showcase",
+    "testnet:keys": "pnpm --silent --filter @pinky/gateway testnet:keys"
   },
   "devDependencies": {
     "@types/node": "^22.18.0",
