@@ -21,7 +21,13 @@
   --bad-wash: #fbe6e6;
   --band: rgba(82, 81, 78, 0.1);
   --radius: 12px;
-  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -493,4 +499,60 @@ th {
 footer {
   margin-top: 24px;
   font-size: 12.5px;
+}
+
+/* The hosted demo's journey controls. */
+.journey-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+}
+.journey-step {
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text-muted);
+  display: inline-flex;
+  font-size: 0.85rem;
+  gap: 6px;
+  padding: 3px 12px 3px 4px;
+}
+.journey-mark {
+  background: var(--surface-2);
+  border-radius: 50%;
+  display: inline-grid;
+  font-size: 0.75rem;
+  height: 20px;
+  place-items: center;
+  width: 20px;
+}
+.journey-step-done {
+  color: var(--good-ink);
+}
+.journey-step-done .journey-mark {
+  background: var(--good-wash);
+}
+.journey-step-next {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+.journey-step-running {
+  background: var(--warn-wash);
+  border-color: var(--status-warning);
+  color: var(--warn-ink);
+}
+.journey-log {
+  background: var(--surface-2);
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  margin-top: 8px;
+  max-height: 240px;
+  overflow: auto;
+  padding: 10px 12px;
+  overflow-wrap: anywhere;
 }

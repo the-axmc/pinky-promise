@@ -3,6 +3,7 @@ import type { LotEntity } from '@pinky/protocol/arkiv';
 import vkArtifact from '@pinky/zk/artifacts/geofence.vk.json';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Checks, Linked } from './components/Checks';
+import { JourneyPanel } from './components/JourneyPanel';
 import { ReadingStrip, TemperatureChart } from './components/charts';
 import { type Context, connect, explorerLink } from './lib/config';
 import { type OpenedEpisode, fetchDemoViewKey, fetchEpisode } from './lib/episode';
@@ -24,7 +25,10 @@ import {
 } from './lib/market';
 import { allOk } from './lib/verify';
 
-const DEFAULT_GATEWAY = (import.meta.env.VITE_GATEWAY_URL as string | undefined) ?? 'http://127.0.0.1:8787';
+// A built page is served by the gateway it talks to, unless told otherwise; `pnpm web` talks to `pnpm demo`.
+const DEFAULT_GATEWAY =
+  (import.meta.env.VITE_GATEWAY_URL as string | undefined) ??
+  (import.meta.env.PROD ? window.location.origin : 'http://127.0.0.1:8787');
 /** SHA-256 of the geofence circuit's verification key, as built into this page. */
 const VK_HASH = vkArtifact.vkHash as Hex;
 
@@ -93,18 +97,32 @@ export function App() {
 
   useEffect(() => {
     let cancelled = false;
+    let retry: ReturnType<typeof setTimeout> | undefined;
     setCtx(undefined);
     setError(undefined);
-    connect(gatewayUrl).then(
-      (connected) => !cancelled && setCtx(connected),
-      (problem) =>
-        !cancelled &&
-        setError(
-          `Cannot reach the gateway at ${gatewayUrl}: ${(problem as Error).message}. Start the stack with \`pnpm demo\`.`,
-        ),
-    );
+    // The gateway may still be starting: keep trying until it answers.
+    const attempt = () =>
+      connect(gatewayUrl).then(
+        (connected) => {
+          if (cancelled) return;
+          setError(undefined);
+          setCtx(connected);
+        },
+        (problem) => {
+          if (cancelled) return;
+          const message = (problem as Error).message;
+          setError(
+            / 503$/.test(message)
+              ? 'The demo is starting: this takes about 30 seconds and the page will carry on by itself.'
+              : `Cannot reach the gateway at ${gatewayUrl}: ${message}. Start the stack with \`pnpm demo\`.`,
+          );
+          retry = setTimeout(attempt, 3_000);
+        },
+      );
+    void attempt();
     return () => {
       cancelled = true;
+      clearTimeout(retry);
     };
   }, [gatewayUrl]);
 
@@ -122,6 +140,11 @@ export function App() {
     }
   }, [ctx, assetId]);
 
+  // Stable, so the journey panel's polling is not restarted by every refresh.
+  const latestRefresh = useRef(refresh);
+  latestRefresh.current = refresh;
+  const onStepDone = useCallback(() => void latestRefresh.current(), []);
+
   // Keep the page live while a journey is running.
   useEffect(() => {
     void refresh();
@@ -138,14 +161,17 @@ export function App() {
             Buyer view — everything below is read from Arkiv and Hedera and checked in this browser.
           </p>
         </div>
-        <label className="gateway">
-          <span>Gateway</span>
-          <input
-            defaultValue={gatewayUrl}
-            onBlur={(event) => setGatewayUrl(event.target.value.trim())}
-            onKeyDown={(event) => event.key === 'Enter' && (event.target as HTMLInputElement).blur()}
-          />
-        </label>
+        {/* A page served by its own gateway has nothing to choose. */}
+        {gatewayUrl === window.location.origin ? null : (
+          <label className="gateway">
+            <span>Gateway</span>
+            <input
+              defaultValue={gatewayUrl}
+              onBlur={(event) => setGatewayUrl(event.target.value.trim())}
+              onKeyDown={(event) => event.key === 'Enter' && (event.target as HTMLInputElement).blur()}
+            />
+          </label>
+        )}
       </header>
 
       {error ? <p className="banner banner-bad">{error}</p> : null}
@@ -155,6 +181,8 @@ export function App() {
           <code>dev-mock</code> and would be refused by a gateway running against the 0G Compute Router.
         </p>
       ) : null}
+
+      {ctx ? <JourneyPanel gatewayUrl={ctx.gatewayUrl} onLot={setAssetId} onStepDone={onStepDone} /> : null}
 
       {ctx && lots.length === 0 && !error ? (
         <p className="muted">No lots on Arkiv yet for registry {shortHex(ctx.config.arkiv.registry)}.</p>
