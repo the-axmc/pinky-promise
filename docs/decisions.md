@@ -1,8 +1,8 @@
 # Decisions
 
-The [plan](architecture-plan.md) says what to build. This file records every place where it left
-something open, or where the implementation does something different, and why. Read it before
-changing any of these: most exist because two layers have to agree.
+This file records every place where the original plan left something open, or where the
+implementation does something different, and why. Read it before changing any of these: most
+exist because two layers have to agree.
 
 ## Not verified yet
 

@@ -5,7 +5,7 @@ handoff from the seal photo and the readings, **Arkiv stores** the evidence as e
 device can write, and **Hedera tokenizes** the lot as an ATS warehouse receipt that freezes
 itself when a breach is proven — and a buyer checks all of it in their own browser before buying.
 
-Built for ETHGlobal Mumbai from [`docs/architecture-plan.md`](docs/architecture-plan.md).
+Built for ETHGlobal Mumbai.
 
 ## Status
 
