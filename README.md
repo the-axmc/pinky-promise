@@ -45,6 +45,10 @@ simulated device, issues the lot's receipt token and plays seven acts:
 On the page, each record shows whether it verified and why; "Use the demo key" decrypts the raw
 temperatures and the seal photos; "Verify all in this browser" runs the zero-knowledge verifier.
 
+`pnpm demo --interactive` puts the device on your keyboard instead. [`docs/showcase.md`](docs/showcase.md)
+is the runbook for showing all of this to judges — locally, with the real 0G model, or on the
+testnets.
+
 ## How it works
 
 ```
@@ -100,6 +104,8 @@ temperatures and the seal photos; "Verify all in this browser" runs the zero-kno
 | Command                                        | What it does                                                                                                                                 |
 | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | `pnpm demo`                                    | The whole system locally, with a scripted journey. `--pause`, `--interactive`, `--port <port>` for a real board, `--once` to exit at the end |
+| `pnpm demo --live`                             | The same journey on the networks named in `.env` (the testnets), gateway included                                                            |
+| `pnpm devnets`                                 | Only the local stand-ins, plus `.env.rehearsal` to rehearse the `--live` commands against them                                               |
 | `pnpm web`                                     | The buyer page                                                                                                                               |
 | `pnpm device probe --port <port>`              | Check every part on a board (`--port mock` for an in-memory board)                                                                           |
 | `pnpm device run --gateway <url>`              | Run a device against a gateway from the keyboard                                                                                             |
@@ -112,20 +118,22 @@ temperatures and the seal photos; "Verify all in this browser" runs the zero-kno
 
 ## Going to the testnets
 
-Nothing below has been run yet; it is the intended path.
+Nothing below has been run against the live networks yet. The same commands have been rehearsed
+end to end against the local stand-ins through the same configuration (`pnpm devnets`), so what
+remains untested is the networks' behaviour: fees, rate limits, timing.
 
 ```sh
 cp .env.example .env     # fill in keys: each line says what the key signs and whether it needs funds
 pnpm doctor              # everything reachable, funded and in place?
 pnpm deploy:hedera       # prints HEDERA_ORACLE / HEDERA_MARKET and the HashScan verification commands
-pnpm gateway
-pnpm device enroll --gateway http://127.0.0.1:8787 --admin-token … --venues WH-MUM-01
-pnpm device run    --gateway http://127.0.0.1:8787
-VITE_GATEWAY_URL=http://127.0.0.1:8787 pnpm web
+pnpm demo --live --pause # the whole journey on the testnets, gateway included; prints the addresses
+pnpm web                 # the buyer page against it
 ```
 
-Venues and lots are created through the gateway's admin API (`POST /v1/admin/venues`,
-`/v1/admin/lots`); `packages/gateway/src/demo.ts` shows the calls.
+For a long-running gateway instead of a demo run: `pnpm gateway`, then `pnpm device enroll` and
+`pnpm device run` against it; venues and lots are created through the admin API
+(`POST /v1/admin/venues`, `/v1/admin/lots`), as `packages/gateway/src/demo.ts` shows.
+Step by step: [`docs/showcase.md`](docs/showcase.md), section C.
 
 ### Deployed addresses
 
