@@ -15,6 +15,7 @@ import {
   browserWallet,
   buy,
   demoWallet,
+  displayValue,
   explainRefusal,
   holdingOf,
   listingsFor,
@@ -724,7 +725,7 @@ function BuyPanel({ ctx, view, onChanged }: { ctx: Context; view: LotView; onCha
         <div className="offer">
           <p>
             <strong>{String(listing.unitsLeft)} units</strong> offered by {shortHex(listing.seller)} at{' '}
-            <strong>{coins(listing.pricePerUnit)} HBAR</strong> each.
+            <strong>{coins(displayValue(ctx.hederaChain.id, listing.pricePerUnit))} HBAR</strong> each.
           </p>
           <div className="row">
             <input
@@ -746,7 +747,7 @@ function BuyPanel({ ctx, view, onChanged }: { ctx: Context; view: LotView; onCha
                 )
               }
             >
-              Buy for {coins(count * listing.pricePerUnit)} HBAR
+              Buy for {coins(displayValue(ctx.hederaChain.id, count * listing.pricePerUnit))} HBAR
             </button>
           </div>
           <p className="muted">

@@ -66,6 +66,11 @@ export function paymentValue(chainId: number, cost: bigint): bigint {
   return [295, 296, 297].includes(chainId) ? cost * 10n ** 10n : cost;
 }
 
+/** A price or balance of the native token as 18-decimal units, for display with `coins`. */
+export function displayValue(chainId: number, amount: bigint): bigint {
+  return paymentValue(chainId, amount);
+}
+
 /** The well-known anvil development mnemonic. Its keys are public: local chains only. */
 const DEV_MNEMONIC = 'test test test test test test test test test test test junk';
 
