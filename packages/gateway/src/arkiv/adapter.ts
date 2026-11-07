@@ -53,6 +53,12 @@ export type ArkivConfig = {
   gatewayKey: Hex;
   /** How often to poll for receipts. Defaults to 1 s (blocks are 2 s apart). */
   pollingIntervalMs?: number;
+  /**
+   * Longest a single transaction may take from signing to receipt before it is given up on and
+   * the worker retries. Bounded, because a transaction the node dropped would otherwise be
+   * waited on forever. Default 3 minutes.
+   */
+  txTimeoutMs?: number;
 };
 
 /** Arkiv's recommended floor on Rabdi: 1,000,000 gas, plus 400,000 per extra operation. */
@@ -83,6 +89,7 @@ export class ArkivAdapter {
   readonly gateway: Address;
   readonly #transport: ReturnType<typeof http>;
   readonly #pollingInterval: number;
+  readonly #txTimeoutMs: number;
   readonly #registryWallet: ReturnType<typeof createWalletClient>;
   readonly #gatewayWallet: ReturnType<typeof createWalletClient>;
   readonly #deviceWallets = new Map<string, ReturnType<typeof createWalletClient>>();
@@ -105,6 +112,7 @@ export class ArkivAdapter {
       : { ...rabdi({ accessKey: config.accessKey ?? '' }), blockTime: BLOCK_TIME_MS };
     this.#transport = http(undefined, { timeout: 30_000 });
     this.#pollingInterval = config.pollingIntervalMs ?? 1_000;
+    this.#txTimeoutMs = config.txTimeoutMs ?? 180_000;
     this.reader = createPublicClient({
       chain: this.chain,
       transport: this.#transport,
@@ -301,7 +309,21 @@ export class ArkivAdapter {
   #serialized<T>(signer: Address, task: () => Promise<T>): Promise<T> {
     const key = signer.toLowerCase();
     const previous = this.#queues.get(key) ?? Promise.resolve();
-    const next = previous.then(task, task);
+    const bounded = () => {
+      let timer: NodeJS.Timeout;
+      const expiry = new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () =>
+            reject(
+              new Error(`Arkiv transaction from ${signer} got no receipt within ${this.#txTimeoutMs} ms`),
+            ),
+          this.#txTimeoutMs,
+        );
+        timer.unref?.();
+      });
+      return Promise.race([task(), expiry]).finally(() => clearTimeout(timer));
+    };
+    const next = previous.then(bounded, bounded);
     this.#queues.set(
       key,
       next.catch(() => {}),

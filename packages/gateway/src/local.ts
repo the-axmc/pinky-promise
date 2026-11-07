@@ -35,7 +35,7 @@ import { LocalEpisodeStore } from './zg/storage';
 
 /** anvil's public development mnemonic. Keys derived from it are for local use only. */
 const DEV_MNEMONIC = 'test test test test test test test test test test test junk';
-const devKey = (index: number): Hex => {
+export const devKey = (index: number): Hex => {
   const key = mnemonicToAccount(DEV_MNEMONIC, { addressIndex: index }).getHdKey().privateKey!;
   return `0x${Buffer.from(key).toString('hex')}`;
 };
@@ -89,7 +89,14 @@ export async function startLocalStack(options: LocalStackOptions = {}): Promise<
 
     const signRequests = new SignRequestQueue(30_000);
     const arkiv = new ArkivAdapter(
-      { rpcUrl: arkivNet.rpcUrl, chainId: arkivNet.chainId, registryKey, gatewayKey, pollingIntervalMs: 100 },
+      {
+        rpcUrl: arkivNet.rpcUrl,
+        chainId: arkivNet.chainId,
+        registryKey,
+        gatewayKey,
+        pollingIntervalMs: 100,
+        txTimeoutMs: 60_000,
+      },
       signRequests,
     );
     await arkivNet.fund(arkiv.registry);
