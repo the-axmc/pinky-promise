@@ -14,7 +14,7 @@ Built for ETHGlobal Mumbai.
 | The whole flow on one machine | **Works.** Simulated device, local stand-ins for the three networks running the unmodified Arkiv SDK and the real ATS contract bytecode, more than 360 automated tests, and the buyer page exercised in a real browser. |
 | Arkiv, Hedera and 0G testnets | **Not deployed yet.** The code paths exist and all three networks were reached read-only (`pnpm doctor`), but no transaction has been sent: that needs funded keys and a 0G API key.                                    |
 | Real 0G model                 | **Not exercised.** Local decisions come from a stand-in and are labelled `dev-mock` everywhere they appear.                                                                                                             |
-| Hardware                      | Host side **tested** against an in-memory board. Firmware **written but not yet compiled or run** on a board. See [`docs/hardware.md`](docs/hardware.md).                                                               |
+| Hardware                      | Host side **tested** against an in-memory board. Firmware **compiles** for every board and role with the ESP32 toolchain; **not yet run** on a board. See [`docs/hardware.md`](docs/hardware.md).                       |
 
 [`docs/decisions.md`](docs/decisions.md) lists every gap in the plan and how it was filled.
 
@@ -101,20 +101,22 @@ testnets.
 
 ## Commands
 
-| Command                                        | What it does                                                                                                                                 |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm demo`                                    | The whole system locally, with a scripted journey. `--pause`, `--interactive`, `--port <port>` for a real board, `--once` to exit at the end |
-| `pnpm demo --live`                             | The same journey on the networks named in `.env` (the testnets), gateway included                                                            |
-| `pnpm devnets`                                 | Only the local stand-ins, plus `.env.rehearsal` to rehearse the `--live` commands against them                                               |
-| `pnpm web`                                     | The buyer page                                                                                                                               |
-| `pnpm device probe --port <port>`              | Check every part on a board (`--port mock` for an in-memory board)                                                                           |
-| `pnpm device run --gateway <url>`              | Run a device against a gateway from the keyboard                                                                                             |
-| `pnpm arkiv:query --lot LOT-42 --out-of-range` | One runnable Arkiv query; also prints the writer wallets                                                                                     |
-| `pnpm doctor`                                  | Read-only check of the configured networks, accounts and contracts                                                                           |
-| `pnpm deploy:hedera`                           | Deploy the custody oracle and the market                                                                                                     |
-| `pnpm gateway`                                 | The gateway against the real networks                                                                                                        |
-| `pnpm test` · `pnpm typecheck`                 | All TypeScript tests · type checks                                                                                                           |
-| `cd contracts && forge test`                   | Solidity tests (clone with `--recurse-submodules`)                                                                                           |
+| Command                                        | What it does                                                                                                                                            |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm demo`                                    | The whole system locally, with a scripted journey. `--pause`, `--interactive`, `--port <port>` for a real board, `--once` to exit at the end            |
+| `pnpm demo --live`                             | The same journey on the networks named in `.env` (the testnets), gateway included                                                                       |
+| `pnpm devnets`                                 | Only the local stand-ins, plus `.env.rehearsal` to rehearse the `--live` commands against them                                                          |
+| `pnpm web`                                     | The buyer page                                                                                                                                          |
+| `pnpm showcase`                                | The page, the gateway and journey controls on one port, for a public link. `--live` for the testnets. [`docs/showcase.md`](docs/showcase.md), section G |
+| `pnpm testnet:keys`                            | Fills the empty keys in `.env` and prints which address to fund where                                                                                   |
+| `pnpm device probe --port <port>`              | Check every part on a board (`--port mock` for an in-memory board)                                                                                      |
+| `pnpm device run --gateway <url>`              | Run a device against a gateway from the keyboard                                                                                                        |
+| `pnpm arkiv:query --lot LOT-42 --out-of-range` | One runnable Arkiv query; also prints the writer wallets                                                                                                |
+| `pnpm doctor`                                  | Read-only check of the configured networks, accounts and contracts                                                                                      |
+| `pnpm deploy:hedera`                           | Deploy the custody oracle and the market                                                                                                                |
+| `pnpm gateway`                                 | The gateway against the real networks                                                                                                                   |
+| `pnpm test` · `pnpm typecheck`                 | All TypeScript tests · type checks                                                                                                                      |
+| `cd contracts && forge test`                   | Solidity tests (clone with `--recurse-submodules`)                                                                                                      |
 
 ## Going to the testnets
 

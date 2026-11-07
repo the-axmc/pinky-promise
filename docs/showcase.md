@@ -227,8 +227,8 @@ pnpm demo --live --pause --port /dev/cu.usbmodem101 --sim gps
 
 With a real SHT31 the lot's limits are set around what it reads at start; warm it in your hand or
 breathe on it to breach. With a real camera the decisions must come from the real model (B or
-C): the stand-in cannot see and escalates every real photo. The firmware has not been compiled
-yet, so leave an hour for its first build.
+C): the stand-in cannot see and escalates every real photo. The firmware compiles but has
+never run on a board, so leave time for the first flash.
 
 ## E. Thirty seconds per track
 
@@ -259,3 +259,58 @@ unfreeze by the inspector; redeem at delivery. Contracts in [`contracts/`](../co
 | `this device is still assigned to lot …` (C)                     | the previous lot was not delivered; finish it with `4`, or use a fresh device identity (`--data` for the CLI, or simply a new run of the demo, which makes a new simulated device) |
 | the buy reverts                                                  | the lot is not in custody, or the wallet is not allow-listed: **Onboard me (demo)**                                                                                                |
 | `ConfigError` on `--live`                                        | `.env` is incomplete; the message lists every missing value                                                                                                                        |
+
+## G. A public link
+
+`pnpm showcase` puts everything on one port: the buyer page, plus a panel on the page that walks a
+lot through the journey, so a judge needs no terminal. Check it first with
+`pnpm --filter @pinky/web build && pnpm showcase`, then http://localhost:8080.
+
+| Way               | What it needs           | Up while          | Judges see                                               |
+| ----------------- | ----------------------- | ----------------- | -------------------------------------------------------- |
+| Tunnel, stand-ins | nothing but this laptop | your laptop is on | the panel, labelled "Simulated networks"                 |
+| Fly.io, stand-ins | a Fly account           | always            | the same                                                 |
+| Fly.io, testnets  | also section C's keys   | always            | real entities and transactions, labelled "Live testnets" |
+
+Status: the journey has been run in a real browser from a clean clone, on stand-ins and through
+the live configuration path against stand-ins. The Docker image itself has not been built, because
+no machine here has Docker: expect to check the first `fly deploy`. The testnets remain as in
+section C.
+
+### G.1 A link in two minutes, from this laptop
+
+```sh
+pnpm --filter @pinky/web build && pnpm showcase    # terminal 1
+brew install cloudflared
+cloudflared tunnel --url http://localhost:8080     # terminal 2: prints a public https:// URL
+```
+
+The URL changes each time and dies with the terminal. Good for a judging call, not for a form.
+
+### G.2 Always on: Fly.io
+
+```sh
+fly auth login
+fly apps create pinky-promise-demo                 # if taken, change the name in fly.toml too
+fly volumes create pinky_data --size 1 --region bom --app pinky-promise-demo
+fly deploy
+```
+
+It answers at https://pinky-promise-demo.fly.dev, on stand-ins, with no keys. It runs continuously,
+so it costs money for as long as it exists: `fly apps destroy pinky-promise-demo` when judging ends.
+
+### G.3 The same app on the testnets
+
+```sh
+pnpm testnet:keys        # fills the empty values in .env and prints what to fund where; rerun anytime
+pnpm doctor              # repeat until "Ready."
+pnpm deploy:hedera       # paste HEDERA_ORACLE and HEDERA_MARKET into .env; run the verify commands
+grep -vE '^(#|$|PORT=|HOST=|DATA_DIR=)|=$' .env | fly secrets import
+fly secrets set SHOWCASE_MODE=live
+```
+
+The `grep` drops comments, empty values and the settings `fly.toml` decides. Then open
+`https://pinky-promise-demo.fly.dev/?drive=<SHOWCASE_DRIVE_KEY>` and press **Start a new lot**. The
+key is for you: the plain link stays read-only, and shows judges every lot you ran.
+
+Each lot deploys a token (section C.1 has the cost), which is why nothing runs at boot.

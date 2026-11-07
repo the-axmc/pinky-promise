@@ -13,7 +13,7 @@ Stated first, because the rest of this file describes design, not proof.
 | The whole flow on one machine               | **Verified.** More than 360 automated tests, the scripted journey (`pnpm demo`), and the buyer page driven in a real browser. Arkiv and Hedera are local stand-ins running the unmodified Arkiv SDK and the real ATS contract bytecode.              |
 | Writes to the Arkiv, Hedera and 0G testnets | **Not done.** No funded keys or 0G API key were available while building. `pnpm doctor` reached all three networks read-only; the adapters for them exist and are covered against the stand-ins. Expect first-run issues: fees, rate limits, timing. |
 | Decisions by a real 0G vision model         | **Not done.** Local decisions come from a stand-in that recognises two pictures by hash. They are recorded as `dev-mock` on Arkiv and shown as "not 0G" on the buyer page.                                                                           |
-| Firmware                                    | **Written, not compiled or run.** See [`hardware.md`](hardware.md).                                                                                                                                                                                  |
+| Firmware                                    | **Compiles, not run.** All targets build with the ESP32 toolchain, BLE option included; nothing has been flashed. See [`hardware.md`](hardware.md).                                                                                                  |
 | Contracts verified on HashScan              | **Not done**: nothing is deployed. `pnpm deploy:hedera` prints the verification commands.                                                                                                                                                            |
 
 ## Layer 1 — device
@@ -208,6 +208,21 @@ language closely enough for the unmodified SDK to run on it, checked against the
 0G is the stand-in above and a folder for episode logs. What these do **not** reproduce: Hedera's
 fees, its tinybar/wei units and its native services; Arkiv's real gas costs; anything about a
 real model's judgement. Known differences are listed in `packages/devnet/src/arkiv/README.md`.
+
+## The hosted demo
+
+**One port, with the gateway behind it.** A judge needs a link, not a terminal, so `pnpm showcase`
+serves the page, a journey panel and only what a browser needs from the gateway. The gateway stays
+on localhost, so its admin and device APIs are not on the internet.
+
+**Stand-ins are relayed, and fenced.** A browser cannot reach chains on a server's localhost, so
+their JSON-RPC goes through `/rpc/*`. They run on anvil's public keys, so anyone could sign as the
+inspector: the relay therefore allows reads, and transactions only from the demo buyer, and refuses
+anvil's control methods.
+
+**Live networks are read-only unless you hold the key.** Each new lot deploys a token, so a live
+demo spends nothing at boot and steps need `SHOWCASE_DRIVE_KEY`. Onboarding, which also costs test
+funds and is open to visitors, is capped per hour.
 
 ## Scope cuts that are already switches
 
