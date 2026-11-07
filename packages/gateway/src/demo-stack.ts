@@ -51,14 +51,22 @@ const PORTS = { gateway: 8787, arkiv: 8645, arkivAnvil: 8646, hedera: 8745, zg: 
 const isLocal = (url: string) => /\/\/(127\.0\.0\.1|localhost)[:/]/.test(url);
 
 /** The local stack on fixed ports, optionally asking the real 0G Router for decisions. */
-export async function localDemoStack(options: { log?: GatewayOptions['log'] }): Promise<DemoStack> {
+export async function localDemoStack(options: {
+  log?: GatewayOptions['log'];
+  /** Any free ports instead of the fixed ones, so it can run beside another stack (tests). */
+  anyPorts?: boolean;
+}): Promise<DemoStack> {
   const zg =
     process.env.ZG_ROUTER_URL && process.env.ZG_API_KEY && process.env.ZG_MODEL
       ? { baseUrl: process.env.ZG_ROUTER_URL, apiKey: process.env.ZG_API_KEY, model: process.env.ZG_MODEL }
       : undefined;
   const stack = await startLocalStack({
-    port: PORTS.gateway,
-    ports: { arkiv: PORTS.arkiv, arkivAnvil: PORTS.arkivAnvil, hedera: PORTS.hedera, zg: PORTS.zg },
+    ...(options.anyPorts
+      ? {}
+      : {
+          port: PORTS.gateway,
+          ports: { arkiv: PORTS.arkiv, arkivAnvil: PORTS.arkivAnvil, hedera: PORTS.hedera, zg: PORTS.zg },
+        }),
     ...(zg ? { zg } : {}),
     gateway: { retryBaseMs: 500, retryMaxMs: 2_000 },
     ...(options.log ? { log: options.log } : {}),
