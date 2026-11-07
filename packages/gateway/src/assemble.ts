@@ -13,14 +13,14 @@ import { HederaAdapter } from './hedera/adapter';
 import type { PublicConfig } from './http';
 import { GatewayStore } from './store';
 import { ZgDecisionClient } from './zg/decision';
-import { ZgEpisodeStore } from './zg/storage';
+import { type EpisodeStore, LocalEpisodeStore, ZgEpisodeStore } from './zg/storage';
 
 export type Assembled = {
   gateway: Gateway;
   arkiv: ArkivAdapter;
   hedera: HederaAdapter;
   zg: ZgDecisionClient;
-  episodes: ZgEpisodeStore;
+  episodes: EpisodeStore;
   publicConfig: PublicConfig;
 };
 
@@ -34,7 +34,25 @@ export function publicArkivRpcUrl(config: Pick<GatewayConfig, 'arkiv'>): string 
   return rabdi({ accessKey: '' }).rpcUrls.default.http[0]!;
 }
 
-export function assembleGateway(config: GatewayConfig, log?: GatewayOptions['log']): Assembled {
+export type AssembleOptions = {
+  log?: GatewayOptions['log'];
+  /** Replaces fetch for calls to 0G only — the demo uses it to cut that one route for a rehearsal. */
+  zgFetch?: typeof fetch;
+  /** Faster receipt polling, for local nodes. */
+  pollingIntervalMs?: number;
+  gateway?: Partial<GatewayOptions>;
+};
+
+export function assembleGateway(
+  config: GatewayConfig,
+  options: AssembleOptions | GatewayOptions['log'] = {},
+): Assembled {
+  const {
+    log,
+    zgFetch,
+    pollingIntervalMs,
+    gateway: gatewayOptions,
+  } = typeof options === 'function' ? { log: options } : (options ?? {});
   const signRequests = new SignRequestQueue(120_000);
   const arkiv = new ArkivAdapter(
     {
@@ -43,6 +61,7 @@ export function assembleGateway(config: GatewayConfig, log?: GatewayOptions['log
       ...(config.arkiv.accessKey ? { accessKey: config.arkiv.accessKey } : {}),
       registryKey: config.keys.registry,
       gatewayKey: config.keys.gateway,
+      ...(pollingIntervalMs ? { pollingIntervalMs, txTimeoutMs: 60_000 } : {}),
     },
     signRequests,
   );
@@ -57,25 +76,33 @@ export function assembleGateway(config: GatewayConfig, log?: GatewayOptions['log
     relayerKey: config.hedera.relayerKey,
     inspectorKey: config.hedera.inspectorKey,
     explorerUrl: config.hedera.explorerUrl,
+    ...(pollingIntervalMs ? { pollingIntervalMs } : {}),
   });
-  const zg = new ZgDecisionClient({
-    mode: 'router',
-    baseUrl: config.zg.routerUrl,
-    apiKey: config.zg.apiKey,
-    model: config.zg.model,
-    verifyTee: config.zg.verifyTee,
-  });
-  const episodes = new ZgEpisodeStore({
-    rpcUrl: config.zg.storage.rpcUrl,
-    indexerUrl: config.zg.storage.indexerUrl,
-    privateKey: config.zg.storage.privateKey,
-  });
+  const zg = new ZgDecisionClient(
+    {
+      mode: config.zg.mode,
+      baseUrl: config.zg.routerUrl,
+      apiKey: config.zg.apiKey,
+      model: config.zg.model,
+      verifyTee: config.zg.verifyTee,
+    },
+    zgFetch ?? fetch,
+  );
+  const episodes: EpisodeStore =
+    config.zg.storage.kind === 'local'
+      ? new LocalEpisodeStore(join(config.dataDir, 'zg-storage'))
+      : new ZgEpisodeStore({
+          rpcUrl: config.zg.storage.rpcUrl,
+          indexerUrl: config.zg.storage.indexerUrl,
+          privateKey: config.zg.storage.privateKey,
+        });
   const store = new GatewayStore(join(config.dataDir, 'gateway.json'));
   const gateway = new Gateway(arkiv, hedera, zg, episodes, signRequests, store, {
     attestorKey: config.keys.attestor,
     registryKey: config.keys.registry,
     geofenceProofs: config.geofenceProofs,
     ...(log ? { log } : {}),
+    ...gatewayOptions,
   });
   const publicConfig: PublicConfig = {
     arkiv: {
@@ -92,10 +119,12 @@ export function assembleGateway(config: GatewayConfig, log?: GatewayOptions['log
       explorerUrl: config.hedera.explorerUrl,
     },
     zg: {
-      mode: 'router',
+      mode: config.zg.mode,
       model: config.zg.model,
-      storage: '0g',
-      ...(config.zg.storage.explorerUrl ? { storageExplorerUrl: config.zg.storage.explorerUrl } : {}),
+      storage: config.zg.storage.kind,
+      ...(config.zg.storage.kind === '0g' && config.zg.storage.explorerUrl
+        ? { storageExplorerUrl: config.zg.storage.explorerUrl }
+        : {}),
     },
     attestor: gateway.attestor,
     gateway: arkiv.gateway,

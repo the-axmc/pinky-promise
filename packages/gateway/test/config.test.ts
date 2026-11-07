@@ -98,6 +98,18 @@ describe('gateway configuration', () => {
     );
   });
 
+  it('allows the stand-in model and local episode logs only when asked for by name', () => {
+    const { ZG_API_KEY: _k, ZG_STORAGE_KEY: _s, ...without } = complete;
+    expect(() => readConfig(without)).toThrow(/ZG_API_KEY is not set[\s\S]*ZG_STORAGE_KEY is not set/);
+    const rehearsal = readConfig({ ...without, ZG_MODE: 'mock', ZG_STORAGE: 'local' });
+    expect(rehearsal.zg.mode).toBe('mock');
+    expect(rehearsal.zg.storage).toEqual({ kind: 'local' });
+    expect(readConfig(complete).zg.storage).toMatchObject({
+      kind: '0g',
+      rpcUrl: 'https://evmrpc-testnet.0g.ai',
+    });
+  });
+
   it('reads overrides and flags', () => {
     const config = readConfig({
       ...complete,

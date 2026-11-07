@@ -16,14 +16,15 @@ async function main(): Promise<void> {
     console.log(
       `${new Date().toISOString().slice(11, 19)}  ${event}${detail ? ` ${JSON.stringify(detail)}` : ''}`,
     );
-  const { gateway, zg, publicConfig } = assembleGateway(config, log);
+  const { gateway, zg, publicConfig } = assembleGateway(config, { log });
 
   console.log(`pinky gateway${envFile ? ` (config: ${envFile})` : ''}
   Arkiv    ${publicConfig.arkiv.rpcUrl}  chain ${publicConfig.arkiv.chainId}  (published endpoint; the access key stays here)
            registry ${publicConfig.arkiv.registry}   gateway ${publicConfig.gateway}
   Hedera   ${publicConfig.hedera.rpcUrl}  chain ${publicConfig.hedera.chainId}
            oracle ${publicConfig.hedera.oracle}   market ${publicConfig.hedera.market}
-  0G       ${config.zg.routerUrl}  model ${config.zg.model}
+  0G       ${config.zg.routerUrl}  model ${config.zg.model}${config.zg.mode === 'mock' ? '  (STAND-IN, not 0G: decisions are recorded as dev-mock)' : ''}
+           episode logs: ${config.zg.storage.kind === '0g' ? '0G Storage' : 'this machine (ZG_STORAGE=local)'}
            attestor ${publicConfig.attestor}`);
 
   // 0G must be usable, or every handoff would simply stay PENDING. Say so up front.

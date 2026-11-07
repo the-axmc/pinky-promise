@@ -57,13 +57,21 @@ const Env = z.object({
   HEDERA_EXPLORER_URL: z.string().url().default('https://hashscan.io/testnet'),
 
   ZG_ROUTER_URL: z.string().url().default('https://router-api.0g.ai/v1'),
-  ZG_API_KEY: z.string().min(1, 'is required: decisions are never made without 0G'),
+  /** "mock" points at the local stand-in: for rehearsals only, recorded everywhere as dev-mock. */
+  ZG_MODE: z.enum(['router', 'mock']).default('router'),
+  ZG_API_KEY: z.string().optional(),
   ZG_MODEL: z.string().min(1, 'name a model that accepts images (see `pnpm doctor`)'),
   ZG_VERIFY_TEE: flag,
   ZG_STORAGE_RPC_URL: z.string().url().default('https://evmrpc-testnet.0g.ai'),
   ZG_STORAGE_INDEXER_URL: z.string().url().default('https://indexer-storage-testnet-turbo.0g.ai'),
-  ZG_STORAGE_KEY: key,
+  /** "local" keeps episode logs in DATA_DIR instead of 0G Storage (rehearsals, or no storage funds yet). */
+  ZG_STORAGE: z.enum(['0g', 'local']).default('0g'),
+  ZG_STORAGE_KEY: key.optional(),
   ZG_STORAGE_EXPLORER_URL: z.string().url().optional(),
+
+  /** For `pnpm demo --live`: who receives the units (default: the issuer) and a wallet to allow-list. */
+  DEMO_DEPOSITOR_KEY: key.optional(),
+  DEMO_BUYER_ADDRESS: address.optional(),
 });
 
 const UNUSED_KEY = `0x${'00'.repeat(31)}01`;
@@ -111,16 +119,29 @@ export type GatewayConfig = {
     explorerUrl: string;
   };
   zg: {
+    mode: 'router' | 'mock';
     routerUrl: string;
     apiKey: string;
     model: string;
     verifyTee: boolean;
-    storage: { rpcUrl: string; indexerUrl: string; privateKey: Hex; explorerUrl?: string };
+    storage:
+      | { kind: '0g'; rpcUrl: string; indexerUrl: string; privateKey: Hex; explorerUrl?: string }
+      | { kind: 'local' };
   };
+  demoAccounts: { depositorKey?: Hex; buyerAddress?: Address };
 };
 
 /** Loads `.env` from where the command was run, or from the repository root. Existing variables win. */
 export function loadEnvFile(): string | undefined {
+  // ENV_FILE picks another file, e.g. the one `pnpm devnets` writes for a rehearsal.
+  const named = process.env.ENV_FILE
+    ? resolve(process.env.INIT_CWD ?? process.cwd(), process.env.ENV_FILE)
+    : undefined;
+  if (named) {
+    if (!existsSync(named)) throw new ConfigError([`ENV_FILE ${named} does not exist`]);
+    process.loadEnvFile(named);
+    return named;
+  }
   for (const candidate of [
     resolve(process.env.INIT_CWD ?? process.cwd(), '.env'),
     resolve(REPO_ROOT, '.env'),
@@ -158,16 +179,28 @@ export function readConfig(
       if (!only.includes(name as never) && present[name] === undefined) present[name] = placeholder;
     }
   }
+  // Requirements that depend on another value, checked up front so everything is reported at once.
+  const conditional: string[] = [];
+  if ((present.ZG_MODE ?? 'router') !== 'mock' && !present.ZG_API_KEY) {
+    conditional.push('ZG_API_KEY is not set: decisions are never made without 0G');
+  }
+  if ((present.ZG_STORAGE ?? '0g') === '0g' && !present.ZG_STORAGE_KEY) {
+    conditional.push(
+      'ZG_STORAGE_KEY is not set (or set ZG_STORAGE=local to keep episode logs on this machine)',
+    );
+  }
   const parsed = Env.safeParse(present);
-  if (!parsed.success) {
-    throw new ConfigError(
-      parsed.error.issues.map(
+  if (!parsed.success || conditional.length > 0) {
+    const issues = parsed.success ? [] : parsed.error.issues;
+    throw new ConfigError([
+      ...issues.map(
         (issue) =>
           `${issue.path.join('.')} ${issue.message.replace(/^Invalid input: expected \w+, received undefined$/, 'is not set')}`,
       ),
-    );
+      ...conditional,
+    ]);
   }
-  const e = parsed.data as z.output<typeof Env>;
+  const e = parsed.data;
   const fromRoot = (path: string) => resolve(REPO_ROOT, path);
   return {
     port: e.PORT,
@@ -197,16 +230,25 @@ export function readConfig(
       explorerUrl: e.HEDERA_EXPLORER_URL,
     },
     zg: {
+      mode: e.ZG_MODE,
       routerUrl: e.ZG_ROUTER_URL,
-      apiKey: e.ZG_API_KEY,
+      apiKey: e.ZG_API_KEY ?? 'unused',
       model: e.ZG_MODEL,
       verifyTee: e.ZG_VERIFY_TEE,
-      storage: {
-        rpcUrl: e.ZG_STORAGE_RPC_URL,
-        indexerUrl: e.ZG_STORAGE_INDEXER_URL,
-        privateKey: e.ZG_STORAGE_KEY as Hex,
-        ...(e.ZG_STORAGE_EXPLORER_URL ? { explorerUrl: e.ZG_STORAGE_EXPLORER_URL } : {}),
-      },
+      storage:
+        e.ZG_STORAGE === 'local'
+          ? { kind: 'local' }
+          : {
+              kind: '0g',
+              rpcUrl: e.ZG_STORAGE_RPC_URL,
+              indexerUrl: e.ZG_STORAGE_INDEXER_URL,
+              privateKey: e.ZG_STORAGE_KEY as Hex,
+              ...(e.ZG_STORAGE_EXPLORER_URL ? { explorerUrl: e.ZG_STORAGE_EXPLORER_URL } : {}),
+            },
+    },
+    demoAccounts: {
+      ...(e.DEMO_DEPOSITOR_KEY ? { depositorKey: e.DEMO_DEPOSITOR_KEY as Hex } : {}),
+      ...(e.DEMO_BUYER_ADDRESS ? { buyerAddress: e.DEMO_BUYER_ADDRESS as Address } : {}),
     },
   };
 }

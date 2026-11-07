@@ -104,7 +104,10 @@ async function main(): Promise<void> {
 
   console.log('\n0G Compute (decisions)');
   const router = env('ZG_ROUTER_URL') ?? 'https://router-api.0g.ai/v1';
-  if (!env('ZG_API_KEY')) bad('ZG_API_KEY is not set');
+  const standIn = env('ZG_MODE') === 'mock';
+  if (standIn)
+    warn('ZG_MODE=mock: decisions come from the stand-in and are recorded as dev-mock, never as 0G');
+  else if (!env('ZG_API_KEY')) bad('ZG_API_KEY is not set');
   try {
     const response = await fetch(`${router}/models`, { signal: AbortSignal.timeout(15_000) });
     if (!response.ok) bad(`${router}/models answered HTTP ${response.status}`);
@@ -128,19 +131,23 @@ async function main(): Promise<void> {
   }
 
   console.log('\n0G Storage (episode logs)');
-  await chain(
-    '0G chain RPC',
-    env('ZG_STORAGE_RPC_URL') ?? 'https://evmrpc-testnet.0g.ai',
-    undefined,
-    [['storage payer', account('ZG_STORAGE_KEY')]],
-    '0G',
-  );
-  try {
-    const indexer = env('ZG_STORAGE_INDEXER_URL') ?? 'https://indexer-storage-testnet-turbo.0g.ai';
-    await fetch(indexer, { signal: AbortSignal.timeout(15_000) });
-    ok(`storage indexer answers (${indexer})`);
-  } catch (error) {
-    bad(`storage indexer is unreachable: ${reason(error)}`);
+  if (env('ZG_STORAGE') === 'local') {
+    warn('ZG_STORAGE=local: episode logs stay on this machine instead of 0G Storage');
+  } else {
+    await chain(
+      '0G chain RPC',
+      env('ZG_STORAGE_RPC_URL') ?? 'https://evmrpc-testnet.0g.ai',
+      undefined,
+      [['storage payer', account('ZG_STORAGE_KEY')]],
+      '0G',
+    );
+    try {
+      const indexer = env('ZG_STORAGE_INDEXER_URL') ?? 'https://indexer-storage-testnet-turbo.0g.ai';
+      await fetch(indexer, { signal: AbortSignal.timeout(15_000) });
+      ok(`storage indexer answers (${indexer})`);
+    } catch (error) {
+      bad(`storage indexer is unreachable: ${reason(error)}`);
+    }
   }
 
   console.log('\nGateway');
